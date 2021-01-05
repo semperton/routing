@@ -5,8 +5,8 @@
     "license": "MIT",
     "require": {},
     "autoload": {
-		"psr-4": {
-			"Semperton\\Routing\\": "/src"
-		}
-	}
+        "psr-4": {
+            "Semperton\\Routing\\": "/src"
+        }
+    }
 }
