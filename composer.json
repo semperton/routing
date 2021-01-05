@@ -1,0 +1,12 @@
+{
+    "name": "semperton/routing",
+    "description": "The Semperton Routing component.",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+		"psr-4": {
+			"Semperton\\Routing\\": "/src"
+		}
+	}
+}
