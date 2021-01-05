@@ -89,6 +89,14 @@ class RouteMatcher implements RouteMatcherInterface
 					if (empty($split[1]) || $this->validate($token, $split[1])) {
 
 						$params[$split[0]] = $token;
+
+						// resolve route for placeholder node
+						$subResult = $this->resolve($pnode, $tokens, $method, $params);
+
+						if ($subResult->isMatch) {
+							return $subResult;
+						}
+
 						$node = $pnode;
 						$token = array_shift($tokens);
 						continue 2;
