@@ -88,18 +88,18 @@ class RouteMatcher implements RouteMatcherInterface
 
 					if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-						$params[$split[0]] = $token;
-
 						// resolve route for placeholder node
 						$subResult = $this->resolve($pnode, $tokens, $method, $params);
-
+						
 						if ($subResult->isMatch) {
+
+							$subResult->params[$split[0]] = $token;
 							return $subResult;
 						}
 
-						$node = $pnode;
-						$token = array_shift($tokens);
-						continue 2;
+						// $node = $pnode;
+						// $token = array_shift($tokens);
+						// continue 2;
 					}
 				} else if ($pname[0] === ASTERISK) { // catch all
 
