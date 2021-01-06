@@ -7,5 +7,4 @@ namespace Semperton\Routing;
 interface RouteMatcherInterface
 {
 	public function match(string $method, string $path): MatchResult;
-	public function build(string $routeName, array $params): string;
 }

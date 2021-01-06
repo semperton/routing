@@ -23,7 +23,7 @@ class RouteCollection
 
 	public function getTree(): TreeNode
 	{
-		return clone $this->tree;
+		return $this->tree;
 	}
 
 	public function map(array $methods, string $path, $target, string $routeName = ''): self
@@ -52,10 +52,17 @@ class RouteCollection
 
 		while (!empty($token)) { // "" or null
 
+			if($token[0] === ASTERISK){ // catchall
+				$token = substr($token, 1);
+				$node->catchall[$token] = true;
+				break;
+			}
+
 			$treePath = &$node->children;
 
-			if ($token[0] === COLON || $token[0] === ASTERISK) { // placeholder
+			if ($token[0] === COLON) { // placeholder
 				$treePath = &$node->placeholder;
+				$token = substr($token, 1);
 			}
 
 			if (!isset($treePath[$token])) {

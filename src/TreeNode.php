@@ -10,4 +10,5 @@ final class TreeNode
 	public $handler = [];
 	public $children = [];
 	public $placeholder = [];
+	public $catchall = [];
 }

@@ -60,76 +60,64 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this->resolve($tree, $tokens, $method, $params);
 	}
 
-	public function build(string $routeName, array $params): string
-	{
-		throw new Exception('Method "build" not yet implemented');
-	}
-
 	protected function resolve(TreeNode $node, array $tokens, string $method, array $params): MatchResult
 	{
-		$result = new MatchResult();
-
 		$token = array_shift($tokens);
 
-		while (!empty($token)) { // "" or null
+		if (empty($token)) { // end of path, "" or null
 
-			if (isset($node->children[$token])) { // regular token
+			if ($node->isLeaf) {
 
-				$node = $node->children[$token];
-				$token = array_shift($tokens);
-				continue;
+				$result = new MatchResult();
+
+				$result->methods = array_keys($node->handler);
+				$result->params = $params;
+
+				if ($method === 'HEAD' && !isset($node->handler[$method])) { // HEAD fallback
+					$method = 'GET';
+				}
+
+				if (isset($node->handler[$method])) {
+					$result->handler = $node->handler[$method];
+					$result->isMatch = true;
+				}
+
+				return $result;
 			}
+		} else if (isset($node->children[$token])) { // regular token
+
+			return $this->resolve($node->children[$token], $tokens, $method, $params);
+		} else {
 
 			foreach ($node->placeholder as $pname => $pnode) { // check placeholder
 
-				if ($pname[0] === COLON) {
+				$split = explode(COLON, $pname);
 
-					$split = explode(COLON, trim($pname, COLON));
+				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-					if (empty($split[1]) || $this->validate($token, $split[1])) {
+					$result = $this->resolve($pnode, $tokens, $method, $params);
 
-						// resolve route for placeholder node
-						$subResult = $this->resolve($pnode, $tokens, $method, $params);
-						
-						if ($subResult->isMatch) {
+					if ($result->isMatch) {
 
-							$subResult->params[$split[0]] = $token;
-							return $subResult;
-						}
-
-						// $node = $pnode;
-						// $token = array_shift($tokens);
-						// continue 2;
+						$result->params[$split[0]] = $token;
+						return $result;
 					}
-				} else if ($pname[0] === ASTERISK) { // catch all
-
-					$pname = substr($pname, 1);
-					$params[$pname] = rtrim($token . SEPARATOR . implode(SEPARATOR, $tokens), SEPARATOR);
-					$node = $pnode;
-					break 2;
 				}
 			}
 
-			return $result; // token mismatch
-		}
+			foreach ($node->catchall as $cname => $val) { // check catchall
 
-		// check for handler
-		if ($node->isLeaf) {
+				$split = explode(COLON, $cname);
 
-			$result->methods = array_keys($node->handler);
-			$result->params = $params;
+				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-			if ($method === 'HEAD' && !isset($node->handler[$method])) { // HEAD fallback
-				$method = 'GET';
-			}
-
-			if (isset($node->handler[$method])) {
-				$result->handler = $node->handler[$method];
-				$result->isMatch = true;
+					$params[$split[0]] = rtrim($token . SEPARATOR . implode(SEPARATOR, $tokens), SEPARATOR);
+					return $this->resolve($node, [], $method, $params);
+				}
 			}
 		}
 
-		return $result;
+		return new MatchResult(); // not found
 	}
 
 	protected function validate(string $value, string $type): bool
