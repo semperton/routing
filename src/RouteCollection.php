@@ -26,7 +26,7 @@ class RouteCollection
 		return $this->tree;
 	}
 
-	public function map(array $methods, string $path, $target, string $routeName = ''): self
+	public function map(array $methods, string $path, $target): self
 	{
 		$handler = [];
 		foreach ($methods as $method) {
@@ -41,12 +41,12 @@ class RouteCollection
 
 		$tokens = explode(SEPARATOR, $path);
 
-		$this->build($this->tree, $tokens, $handler, $routeName);
+		$this->build($this->tree, $tokens, $handler);
 
 		return $this;
 	}
 
-	protected function build(TreeNode $node, array $tokens, array $handler, string $routeName): void
+	protected function build(TreeNode $node, array $tokens, array $handler): void
 	{
 		$token = array_shift($tokens);
 
