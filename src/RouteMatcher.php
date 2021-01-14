@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
-use Exception;
-
 class RouteMatcher implements RouteMatcherInterface
 {
 	protected $routeCollection;
@@ -13,7 +11,7 @@ class RouteMatcher implements RouteMatcherInterface
 	protected $basePath = '';
 
 	// https://www.php.net/manual/en/ref.ctype.php
-	protected $validationTypes = [
+	protected $validationFunctions = [
 		'A' => 'ctype_alnum',
 		'a' => 'ctype_alpha',
 		'd' => 'ctype_digit',
@@ -25,7 +23,7 @@ class RouteMatcher implements RouteMatcherInterface
 	public function __construct(RouteCollection $routeCollection)
 	{
 		$this->routeCollection = $routeCollection;
-		$this->registerValidationType('w', [$this, 'validateWord']);
+		$this->addValidationFunction('w', [$this, 'validateWord']);
 	}
 
 	public function setBasePath(string $path): self
@@ -35,10 +33,10 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this;
 	}
 
-	public function registerValidationType(string $id, callable $callback): self
+	public function addValidationFunction(string $id, callable $callback): self
 	{
 		if (is_callable($callback)) {
-			$this->validationTypes[$id] = $callback;
+			$this->validationFunctions[$id] = $callback;
 		}
 
 		return $this;
@@ -50,7 +48,6 @@ class RouteMatcher implements RouteMatcherInterface
 			$path = substr($path, strlen($this->basePath));
 		}
 
-		$path = str_replace('.', SEPARATOR, $path);
 		$path = trim($path, SEPARATOR);
 
 		$tokens = explode(SEPARATOR, $path);
@@ -111,7 +108,8 @@ class RouteMatcher implements RouteMatcherInterface
 
 				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-					$params[$split[0]] = rtrim($token . SEPARATOR . implode(SEPARATOR, $tokens), SEPARATOR);
+					array_unshift($tokens, $token);
+					$params[$split[0]] = implode(SEPARATOR, $tokens);
 					return $this->resolve($node, [], $method, $params);
 				}
 			}
@@ -122,9 +120,9 @@ class RouteMatcher implements RouteMatcherInterface
 
 	protected function validate(string $value, string $type): bool
 	{
-		if (isset($this->validationTypes[$type])) {
+		if (isset($this->validationFunctions[$type])) {
 
-			$callback = $this->validationTypes[$type];
+			$callback = $this->validationFunctions[$type];
 
 			return (bool)$callback($value);
 		}
@@ -134,7 +132,7 @@ class RouteMatcher implements RouteMatcherInterface
 
 	protected static function validateWord(string $value): bool
 	{
-		$value = str_replace('_', '', $value);
-		return ctype_alpha($value);
+		$value = str_replace(['_', '-'], '', $value);
+		return ctype_alnum($value);
 	}
 }

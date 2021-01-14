@@ -23,7 +23,7 @@ class RouteCollection
 
 	public function getTree(): TreeNode
 	{
-		return $this->tree;
+		return clone $this->tree;
 	}
 
 	public function map(array $methods, string $path, $target): self
@@ -34,9 +34,7 @@ class RouteCollection
 			$handler[$method] = $target;
 		}
 
-		$path = str_replace('.', SEPARATOR, $path);
-
-		$path = rtrim($this->prefix, SEPARATOR) . SEPARATOR . ltrim($path, SEPARATOR);
+		$path = $this->prefix . $path;
 		$path = trim($path, SEPARATOR);
 
 		$tokens = explode(SEPARATOR, $path);
@@ -52,7 +50,7 @@ class RouteCollection
 
 		while (!empty($token)) { // "" or null
 
-			if($token[0] === ASTERISK){ // catchall
+			if ($token[0] === ASTERISK) { // catchall
 				$token = substr($token, 1);
 				$node->catchall[$token] = true;
 				break;
