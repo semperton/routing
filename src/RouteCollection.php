@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
-const SEPARATOR = '/';
-const COLON = ':';
-const ASTERISK = '*';
-
 use Closure;
 
 class RouteCollection
@@ -35,9 +31,9 @@ class RouteCollection
 		}
 
 		$path = $this->prefix . $path;
-		$path = trim($path, SEPARATOR);
+		$path = trim($path, '/');
 
-		$tokens = explode(SEPARATOR, $path);
+		$tokens = explode('/', $path);
 
 		$this->build($this->tree, $tokens, $handler);
 
@@ -50,7 +46,7 @@ class RouteCollection
 
 		while (!empty($token)) { // "" or null
 
-			if ($token[0] === ASTERISK) { // catchall
+			if ($token[0] === '*') { // catchall
 				$token = substr($token, 1);
 				$node->catchall[$token] = true;
 				break;
@@ -58,7 +54,7 @@ class RouteCollection
 
 			$treePath = &$node->children;
 
-			if ($token[0] === COLON) { // placeholder
+			if ($token[0] === ':') { // placeholder
 				$treePath = &$node->placeholder;
 				$token = substr($token, 1);
 			}

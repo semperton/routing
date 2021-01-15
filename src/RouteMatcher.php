@@ -48,9 +48,9 @@ class RouteMatcher implements RouteMatcherInterface
 			$path = substr($path, strlen($this->basePath));
 		}
 
-		$path = trim($path, SEPARATOR);
+		$path = trim($path, '/');
 
-		$tokens = explode(SEPARATOR, $path);
+		$tokens = explode('/', $path);
 
 		$tree = $this->routeCollection->getTree();
 
@@ -88,7 +88,7 @@ class RouteMatcher implements RouteMatcherInterface
 
 			foreach ($node->placeholder as $pname => $pnode) { // check placeholder
 
-				$split = explode(COLON, $pname);
+				$split = explode(':', $pname);
 
 				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
@@ -104,12 +104,12 @@ class RouteMatcher implements RouteMatcherInterface
 
 			foreach ($node->catchall as $cname => $val) { // check catchall
 
-				$split = explode(COLON, $cname);
+				$split = explode(':', $cname);
 
 				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
 					array_unshift($tokens, $token);
-					$params[$split[0]] = implode(SEPARATOR, $tokens);
+					$params[$split[0]] = implode('/', $tokens);
 					return $this->resolve($node, [], $method, $params);
 				}
 			}
