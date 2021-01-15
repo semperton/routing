@@ -57,36 +57,30 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this->resolve($tree, $tokens, $method, $params);
 	}
 
-	protected function resolve(TreeNode $node, array $tokens, string $method, array $params): MatchResult
+	protected function resolve(array $node, array $tokens, string $method, array $params): MatchResult
 	{
 		$token = array_shift($tokens);
 
 		if (empty($token)) { // end of path, "" or null
 
-			if ($node->isLeaf) {
+			if ($node['leaf']) {
 
-				$result = new MatchResult();
-
-				$result->methods = array_keys($node->handler);
-				$result->params = $params;
-
-				if ($method === 'HEAD' && !isset($node->handler[$method])) { // HEAD fallback
+				if ($method === 'HEAD' && !isset($node['handler'][$method])) { // HEAD fallback
 					$method = 'GET';
 				}
 
-				if (isset($node->handler[$method])) {
-					$result->handler = $node->handler[$method];
-					$result->isMatch = true;
-				}
+				$match = isset($node['handler'][$method]);
+				$handler = $match ? $node['handler'][$method] : null;
+				$methods = array_keys($node['handler']);
 
-				return $result;
+				return new MatchResult($match, $handler, $methods, $params);
 			}
-		} else if (isset($node->children[$token])) { // regular token
+		} else if (isset($node['static'][$token])) { // regular token
 
-			return $this->resolve($node->children[$token], $tokens, $method, $params);
+			return $this->resolve($node['static'][$token], $tokens, $method, $params);
 		} else {
 
-			foreach ($node->placeholder as $pname => $pnode) { // check placeholder
+			foreach ($node['placeholder'] as $pname => $pnode) { // check placeholder
 
 				$split = explode(':', $pname);
 
@@ -94,15 +88,17 @@ class RouteMatcher implements RouteMatcherInterface
 
 					$result = $this->resolve($pnode, $tokens, $method, $params);
 
-					if ($result->isMatch) {
+					if ($result->isMatch()) {
 
-						$result->params[$split[0]] = $token;
-						return $result;
+						$allParams = $result->getParams();
+						$allParams[$split[0]] = $token;
+
+						return new MatchResult(true, $result->getHandler(), $result->getMethods(), $allParams);
 					}
 				}
 			}
 
-			foreach ($node->catchall as $cname => $val) { // check catchall
+			foreach ($node['catchall'] as $cname => $val) { // check catchall
 
 				$split = explode(':', $cname);
 
@@ -115,7 +111,7 @@ class RouteMatcher implements RouteMatcherInterface
 			}
 		}
 
-		return new MatchResult(); // not found
+		return new MatchResult(false); // not found
 	}
 
 	protected function validate(string $value, string $type): bool

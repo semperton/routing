@@ -12,14 +12,14 @@ class RouteCollection
 
 	protected $prefix = '';
 
-	public function __construct(?TreeNode $tree = null)
+	public function __construct(?array $tree = null)
 	{
-		$this->tree = $tree ?? new TreeNode();
+		$this->tree = $tree ?? $this->newNode();
 	}
 
-	public function getTree(): TreeNode
+	public function getTree(): array
 	{
-		return clone $this->tree;
+		return $this->tree;
 	}
 
 	public function map(array $methods, string $path, $target): self
@@ -40,7 +40,7 @@ class RouteCollection
 		return $this;
 	}
 
-	protected function build(TreeNode $node, array $tokens, array $handler): void
+	protected function build(array &$node, array $tokens, array $handler): void
 	{
 		$token = array_shift($tokens);
 
@@ -48,28 +48,39 @@ class RouteCollection
 
 			if ($token[0] === '*') { // catchall
 				$token = substr($token, 1);
-				$node->catchall[$token] = true;
+				$node['catchall'][$token] = true;
 				break;
 			}
 
-			$treePath = &$node->children;
+			$treePath = &$node['static'];
 
 			if ($token[0] === ':') { // placeholder
-				$treePath = &$node->placeholder;
+				$treePath = &$node['placeholder'];
 				$token = substr($token, 1);
 			}
 
 			if (!isset($treePath[$token])) {
-				$treePath[$token] = new TreeNode();
+				$treePath[$token] = $this->newNode();
 			}
 
-			$node = $treePath[$token];
+			$node = &$treePath[$token];
 
 			$token = array_shift($tokens);
 		}
 
-		$node->isLeaf = true;
-		$node->handler = $handler + $node->handler;
+		$node['leaf'] = true;
+		$node['handler'] = $handler + $node['handler'];
+	}
+
+	protected function newNode(): array
+	{
+		return [
+			'leaf' => false,
+			'handler' => [],
+			'static' => [],
+			'placeholder' => [],
+			'catchall' => []
+		];
 	}
 
 	public function group(string $path, Closure $callback): self
