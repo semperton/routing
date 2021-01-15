@@ -7,7 +7,37 @@ use Semperton\Routing\RouteMatcher;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-$collection = new RouteCollection();
+
+$collection = new RouteCollection((function () {
+
+	$cacheFile = __DIR__ . '/routes.php';
+
+	if (file_exists($cacheFile)) {
+
+		$tree = require $cacheFile;
+		return $tree;
+	}
+
+	$col = new RouteCollection();
+
+	$col->get('/admin/*remain', 'admin-handler');
+	$col->get('/blog', 'blog-handler');
+	$col->get('/blog/:post_slug:w', 'post-handler');
+	$col->get('/category/:name:w/:id:d', 'category-handler');
+
+	$col->group('/user-', function (RouteCollection $user) {
+
+		$user->get('login', 'login-handler');
+		$user->get('logout', 'logout-handler');
+	});
+
+	$tree = $col->getTree();
+	$data = str_replace("\n", '', var_export($tree, true));
+	file_put_contents($cacheFile, "<?php return $data;");
+
+	return $tree;
+})());
+
 $router = new RouteMatcher($collection);
 
 $router->addValidationFunction('json', function ($value) {
@@ -18,28 +48,8 @@ $router->addValidationFunction('json', function ($value) {
 		}
 	}
 	return false;
-	// return (bool)preg_match('/[\w\-]+\.json/', $value);
 });
 
-// $collection->get('/admin/*remain:d', 'handler-admin');
-// $collection->get('/blog', 'handler-blog');
-// $collection->get('/blog/:post_slug:w', 'handler-slug');
-// $collection->get('/category/:id:d', 'handler-id');
-
-// $collection->get('/category/:name/:id', 'handler-cat');
-// $collection->get('/category/:file', 'handler-file');
-
-// $collection->get('/api/collection/:collection:w/:id:d', 'collection-handler');
-
-// $collection->group('/admin/', function (RouteCollection $admin) {
-
-// 	$admin->get('login/*end', 'login-handler');
-// 	$admin->get('logout', 'logout-handler');
-// });
-
-// $router->setBasePath('my.domain.de');
-
-$collection->get('/static', 'handler');
 
 $iterationCount = 1000;
 
@@ -49,7 +59,7 @@ for ($i = 0; $i < $iterationCount; $i++) {
 
 	// $result = $router->match('GET', '/api/collection/post/55');
 	// $result = $router->match('GET', 'my.domain.de/admin/login/hhhsdfsdf/hamer.json');
-	$result = $router->match('GET', '/static');
+	$result = $router->match('GET', '/category/post/55');
 }
 
 $end = microtime(true) - $start;
