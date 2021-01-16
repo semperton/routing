@@ -8,13 +8,21 @@ use Closure;
 
 class RouteCollection
 {
-	protected $tree;
+	const NODE_LEAF = 0;
+	const NODE_HANDLER = 1;
+	const NODE_STATIC = 2;
+	const NODE_PLACEHOLDER = 3;
+	const NODE_CATCHALL = 4;
 
+	/** @var string */
 	protected $prefix = '';
 
-	public function __construct(?array $tree = null)
+	/** @var array */
+	protected $tree;
+
+	public function __construct(array $tree = [])
 	{
-		$this->tree = $tree ?? $this->newNode();
+		$this->tree = $tree;
 	}
 
 	public function getTree(): array
@@ -35,52 +43,57 @@ class RouteCollection
 
 		$tokens = explode('/', $path);
 
-		$this->build($this->tree, $tokens, $handler);
+		$this->buildTree($this->tree, $tokens, $handler);
 
 		return $this;
 	}
 
-	protected function build(array &$node, array $tokens, array $handler): void
+	protected function buildTree(array &$node, array $tokens, array $handler): void
 	{
-		$token = array_shift($tokens);
+		$pos = 0;
+		while (!empty($tokens[$pos])) { // "" or null
 
-		while (!empty($token)) { // "" or null
+			$token = $tokens[$pos];
 
 			if ($token[0] === '*') { // catchall
+
+				if (!isset($node[self::NODE_CATCHALL])) {
+					$node[self::NODE_CATCHALL] = [];
+				}
 				$token = substr($token, 1);
-				$node['catchall'][$token] = true;
+				$node[self::NODE_CATCHALL][$token] = true;
 				break;
 			}
 
-			$treePath = &$node['static'];
+			$switch = self::NODE_STATIC;
 
 			if ($token[0] === ':') { // placeholder
-				$treePath = &$node['placeholder'];
+				$switch = self::NODE_PLACEHOLDER;
 				$token = substr($token, 1);
 			}
 
+			if (!isset($node[$switch])) {
+				$node[$switch] = [];
+			}
+
+			$treePath = &$node[$switch];
+
 			if (!isset($treePath[$token])) {
-				$treePath[$token] = $this->newNode();
+				$treePath[$token] = [];
 			}
 
 			$node = &$treePath[$token];
 
-			$token = array_shift($tokens);
+			$pos++;
 		}
 
-		$node['leaf'] = true;
-		$node['handler'] = $handler + $node['handler'];
-	}
+		$node[self::NODE_LEAF] = true;
 
-	protected function newNode(): array
-	{
-		return [
-			'leaf' => false,
-			'handler' => [],
-			'static' => [],
-			'placeholder' => [],
-			'catchall' => []
-		];
+		if (isset($node[self::NODE_HANDLER])) {
+			$node[self::NODE_HANDLER] = $handler + $node[self::NODE_HANDLER];
+		} else {
+			$node[self::NODE_HANDLER] = $handler;
+		}
 	}
 
 	public function group(string $path, Closure $callback): self

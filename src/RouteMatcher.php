@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
+use InvalidArgumentException;
+use Semperton\Routing\RouteCollection as RC;
+
 class RouteMatcher implements RouteMatcherInterface
 {
 	protected $routeCollection;
@@ -44,12 +47,11 @@ class RouteMatcher implements RouteMatcherInterface
 
 	public function match(string $method, string $path, array $params = []): MatchResult
 	{
-		if (!empty($this->basePath) && strpos($path, $this->basePath) === 0) {
+		if ($this->basePath !== '' && strpos($path, $this->basePath) === 0) {
 			$path = substr($path, strlen($this->basePath));
 		}
 
 		$path = trim($path, '/');
-
 		$tokens = explode('/', $path);
 
 		$tree = $this->routeCollection->getTree();
@@ -63,50 +65,56 @@ class RouteMatcher implements RouteMatcherInterface
 
 		if (empty($token)) { // end of path, "" or null
 
-			if ($node['leaf']) {
+			if (!empty($node[RC::NODE_LEAF])) {
 
-				if ($method === 'HEAD' && !isset($node['handler'][$method])) { // HEAD fallback
+				if ($method === 'HEAD' && !isset($node[RC::NODE_HANDLER][$method])) { // HEAD fallback
 					$method = 'GET';
 				}
 
-				$match = isset($node['handler'][$method]);
-				$handler = $match ? $node['handler'][$method] : null;
-				$methods = array_keys($node['handler']);
+				$match = isset($node[RC::NODE_HANDLER][$method]);
+				$handler = $match ? $node[RC::NODE_HANDLER][$method] : null;
+				$methods = $match ? array_keys($node[RC::NODE_HANDLER]) : [];
 
 				return new MatchResult($match, $handler, $methods, $params);
 			}
-		} else if (isset($node['static'][$token])) { // regular token
+		} else if (isset($node[RC::NODE_STATIC][$token])) { // regular token
 
-			return $this->resolve($node['static'][$token], $tokens, $method, $params);
+			return $this->resolve($node[RC::NODE_STATIC][$token], $tokens, $method, $params);
 		} else {
 
-			foreach ($node['placeholder'] as $pname => $pnode) { // check placeholder
+			if (isset($node[RC::NODE_PLACEHOLDER])) {
 
-				$split = explode(':', $pname);
+				foreach ($node[RC::NODE_PLACEHOLDER] as $pname => $pnode) { // check placeholder
 
-				if (empty($split[1]) || $this->validate($token, $split[1])) {
+					$split = explode(':', $pname);
 
-					$result = $this->resolve($pnode, $tokens, $method, $params);
+					if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-					if ($result->isMatch()) {
+						$result = $this->resolve($pnode, $tokens, $method, $params);
 
-						$allParams = $result->getParams();
-						$allParams[$split[0]] = $token;
+						if ($result->isMatch()) {
 
-						return new MatchResult(true, $result->getHandler(), $result->getMethods(), $allParams);
+							$allParams = $result->getParams();
+							$allParams[$split[0]] = $token;
+
+							return new MatchResult(true, $result->getHandler(), $result->getMethods(), $allParams);
+						}
 					}
 				}
 			}
 
-			foreach ($node['catchall'] as $cname => $val) { // check catchall
+			if (isset($node[RC::NODE_CATCHALL])) {
 
-				$split = explode(':', $cname);
+				foreach ($node[RC::NODE_CATCHALL] as $cname => $val) { // check catchall
 
-				if (empty($split[1]) || $this->validate($token, $split[1])) {
+					$split = explode(':', $cname);
 
-					array_unshift($tokens, $token);
-					$params[$split[0]] = implode('/', $tokens);
-					return $this->resolve($node, [], $method, $params);
+					if (empty($split[1]) || $this->validate($token, $split[1])) {
+
+						array_unshift($tokens, $token);
+						$params[$split[0]] = implode('/', $tokens);
+						return $this->resolve($node, [], $method, $params);
+					}
 				}
 			}
 		}
@@ -116,14 +124,13 @@ class RouteMatcher implements RouteMatcherInterface
 
 	protected function validate(string $value, string $type): bool
 	{
-		if (isset($this->validationFunctions[$type])) {
-
-			$callback = $this->validationFunctions[$type];
-
-			return (bool)$callback($value);
+		if (!isset($this->validationFunctions[$type])) {
+			throw new InvalidArgumentException("No validation function found for < :$type >");
 		}
 
-		return false;
+		$callback = $this->validationFunctions[$type];
+
+		return (bool)$callback($value);
 	}
 
 	protected static function validateWord(string $value): bool
