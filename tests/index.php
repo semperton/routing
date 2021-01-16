@@ -40,7 +40,7 @@ $collection = new RouteCollection((function () {
 
 $router = new RouteMatcher($collection);
 
-$router->addValidationFunction('json', function ($value) {
+$router->setValidator('json', function ($value) {
 	$parts = explode('.', $value);
 	if (count($parts) === 2) {
 		if ($parts[1] === 'json' && ctype_alnum($parts[0])) {
