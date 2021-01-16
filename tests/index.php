@@ -8,7 +8,7 @@ use Semperton\Routing\RouteMatcher;
 require_once __DIR__ . '/../vendor/autoload.php';
 
 
-$collection = new RouteCollection((function () {
+$router = new RouteMatcher((function () {
 
 	$cacheFile = __DIR__ . '/routes.php';
 
@@ -38,8 +38,6 @@ $collection = new RouteCollection((function () {
 	return $tree;
 })());
 
-$router = new RouteMatcher($collection);
-
 $router->setValidator('json', function ($value) {
 	$parts = explode('.', $value);
 	if (count($parts) === 2) {
@@ -49,7 +47,6 @@ $router->setValidator('json', function ($value) {
 	}
 	return false;
 });
-
 
 $iterationCount = 1000;
 

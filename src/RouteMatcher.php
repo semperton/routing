@@ -9,7 +9,7 @@ use Semperton\Routing\RouteCollection as RC;
 
 class RouteMatcher implements RouteMatcherInterface
 {
-	protected $routeCollection;
+	protected $routeTree;
 
 	protected $basePath = '';
 
@@ -23,9 +23,9 @@ class RouteMatcher implements RouteMatcherInterface
 		'u' => 'ctype_upper'
 	];
 
-	public function __construct(RouteCollection $routeCollection)
+	public function __construct(array $routeTree)
 	{
-		$this->routeCollection = $routeCollection;
+		$this->routeTree = $routeTree;
 		$this->setValidator('w', [$this, 'validateWord']);
 	}
 
@@ -55,9 +55,7 @@ class RouteMatcher implements RouteMatcherInterface
 		$path = trim($path, '/');
 		$tokens = explode('/', $path);
 
-		$tree = $this->routeCollection->getTree();
-
-		return $this->resolve($tree, $tokens, $method, $params);
+		return $this->resolve($this->routeTree, $tokens, $method, $params);
 	}
 
 	protected function resolve(array $node, array $tokens, string $method, array $params): MatchResult
