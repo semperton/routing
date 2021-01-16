@@ -6,13 +6,17 @@ namespace Semperton\Routing;
 
 final class MatchResult
 {
-	protected $match = false;
+	/** @var bool */
+	protected $match;
 
-	protected $handler = null;
+	/** @var mixed */
+	protected $handler;
 
-	protected $methods = [];
+	/** @var string[] */
+	protected $methods;
 
-	protected $params = [];
+	/** @var array */
+	protected $params;
 
 	public function __construct(bool $match, $handler = null, array $methods = [], array $params = [])
 	{
