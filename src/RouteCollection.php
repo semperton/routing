@@ -50,10 +50,11 @@ class RouteCollection
 
 	protected function buildTree(array &$node, array $tokens, array $handler): void
 	{
-		$pos = 0;
-		while (!empty($tokens[$pos])) { // "" or null
+		foreach ($tokens as $token) {
 
-			$token = $tokens[$pos];
+			if ($token === '') { // index
+				break;
+			}
 
 			if ($token[0] === '*') { // catchall
 
@@ -79,12 +80,10 @@ class RouteCollection
 			$treePath = &$node[$switch];
 
 			if (!isset($treePath[$token])) {
-				$treePath[$token] = [];
+				$treePath[$token] = []; // new node
 			}
 
 			$node = &$treePath[$token];
-
-			$pos++;
 		}
 
 		$node[self::NODE_LEAF] = true;

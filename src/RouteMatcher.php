@@ -14,7 +14,7 @@ class RouteMatcher implements RouteMatcherInterface
 	protected $basePath = '';
 
 	// https://www.php.net/manual/en/ref.ctype.php
-	protected $validationFunctions = [
+	protected $validators = [
 		'A' => 'ctype_alnum',
 		'a' => 'ctype_alpha',
 		'd' => 'ctype_digit',
@@ -26,21 +26,22 @@ class RouteMatcher implements RouteMatcherInterface
 	public function __construct(RouteCollection $routeCollection)
 	{
 		$this->routeCollection = $routeCollection;
-		$this->addValidationFunction('w', [$this, 'validateWord']);
+		$this->setValidator('w', [$this, 'validateWord']);
 	}
 
 	public function setBasePath(string $path): self
 	{
 		$this->basePath = $path;
-
 		return $this;
 	}
 
-	public function addValidationFunction(string $id, callable $callback): self
+	public function setValidator(string $id, callable $callback): self
 	{
-		if (is_callable($callback)) {
-			$this->validationFunctions[$id] = $callback;
+		if (!is_callable($callback)) {
+			throw new InvalidArgumentException("Validator for < $id > must be a valid callable");
 		}
+
+		$this->validators[$id] = $callback;
 
 		return $this;
 	}
@@ -61,62 +62,70 @@ class RouteMatcher implements RouteMatcherInterface
 
 	protected function resolve(array $node, array $tokens, string $method, array $params): MatchResult
 	{
-		$token = array_shift($tokens);
+		foreach ($tokens as $index => $token) {
 
-		if (empty($token)) { // end of path, "" or null
-
-			if (!empty($node[RC::NODE_LEAF])) {
-
-				if ($method === 'HEAD' && !isset($node[RC::NODE_HANDLER][$method])) { // HEAD fallback
-					$method = 'GET';
-				}
-
-				$match = isset($node[RC::NODE_HANDLER][$method]);
-				$handler = $match ? $node[RC::NODE_HANDLER][$method] : null;
-				$methods = $match ? array_keys($node[RC::NODE_HANDLER]) : [];
-
-				return new MatchResult($match, $handler, $methods, $params);
+			if ($token === '') { // index
+				break;
 			}
-		} else if (isset($node[RC::NODE_STATIC][$token])) { // regular token
 
-			return $this->resolve($node[RC::NODE_STATIC][$token], $tokens, $method, $params);
-		} else {
+			if (isset($node[RC::NODE_STATIC][$token])) { // static path
+				$node = $node[RC::NODE_STATIC][$token];
+				continue;
+			}
 
-			if (isset($node[RC::NODE_PLACEHOLDER])) {
+			if (isset($node[RC::NODE_PLACEHOLDER])) { // placeholder
 
-				foreach ($node[RC::NODE_PLACEHOLDER] as $pname => $pnode) { // check placeholder
+				$placeholder = $node[RC::NODE_PLACEHOLDER];
+				$tokensLeft = array_slice($tokens, $index + 1);
+
+				foreach ($placeholder as $pname => $pnode) {
 
 					$split = explode(':', $pname);
 
 					if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-						$result = $this->resolve($pnode, $tokens, $method, $params);
+						$params[$split[0]] = $token;
+						$result = $this->resolve($pnode, $tokensLeft, $method, $params);
 
 						if ($result->isMatch()) {
-
-							$allParams = $result->getParams();
-							$allParams[$split[0]] = $token;
-
-							return new MatchResult(true, $result->getHandler(), $result->getMethods(), $allParams);
+							return $result;
 						}
+
+						unset($params[$split[0]]);
 					}
 				}
 			}
 
 			if (isset($node[RC::NODE_CATCHALL])) {
 
-				foreach ($node[RC::NODE_CATCHALL] as $cname => $val) { // check catchall
+				$catchall = $node[RC::NODE_CATCHALL];
+
+				foreach ($catchall as $cname => $val) { // check catchall
 
 					$split = explode(':', $cname);
 
 					if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-						array_unshift($tokens, $token);
-						$params[$split[0]] = implode('/', $tokens);
-						return $this->resolve($node, [], $method, $params);
+						$params[$split[0]] = implode('/', array_slice($tokens, $index));
+						break 2;
 					}
 				}
 			}
+
+			return new MatchResult(false); // token mismatch
+		}
+
+		if (!empty($node[RC::NODE_LEAF])) {
+
+			if ($method === 'HEAD' && !isset($node[RC::NODE_HANDLER][$method])) { // HEAD fallback
+				$method = 'GET';
+			}
+
+			$match = isset($node[RC::NODE_HANDLER][$method]);
+			$handler = $match ? $node[RC::NODE_HANDLER][$method] : null;
+			$methods = $match ? array_keys($node[RC::NODE_HANDLER]) : [];
+
+			return new MatchResult($match, $handler, $methods, $params);
 		}
 
 		return new MatchResult(false); // not found
@@ -124,18 +133,27 @@ class RouteMatcher implements RouteMatcherInterface
 
 	protected function validate(string $value, string $type): bool
 	{
-		if (!isset($this->validationFunctions[$type])) {
+		if (!isset($this->validators[$type])) {
 			throw new InvalidArgumentException("No validation function found for < :$type >");
 		}
 
-		$callback = $this->validationFunctions[$type];
+		$callback = $this->validators[$type];
 
 		return (bool)$callback($value);
 	}
 
 	protected static function validateWord(string $value): bool
 	{
-		$value = str_replace(['_', '-'], '', $value);
+		if ($value === '') {
+			return false;
+		}
+
+		$value = str_replace('_', '', $value);
+
+		if ($value === '') {
+			return true;
+		}
+
 		return ctype_alnum($value);
 	}
 }
