@@ -22,12 +22,7 @@ class RouteCollection
 	protected $prefix = '';
 
 	/** @var array */
-	protected $routes;
-
-	public function __construct(array $routes = [])
-	{
-		$this->routes = $routes;
-	}
+	protected $routes = [];
 
 	public function getRoutes(): array
 	{
@@ -37,18 +32,6 @@ class RouteCollection
 	public function getTree(): array
 	{
 		return $this->buildTree();
-	}
-
-	public function map(array $methods, string $path, $target): self
-	{
-		foreach ($methods as $method) {
-
-			$method = strtoupper($method);
-			$path = $this->prefix . $path;
-			$this->routes[] = [$method, $path, $target];
-		}
-
-		return $this;
 	}
 
 	protected function buildTree(): array
@@ -125,6 +108,18 @@ class RouteCollection
 		$callback($this);
 
 		$this->prefix = $currentPrefix;
+
+		return $this;
+	}
+
+	public function map(array $methods, string $path, $target): self
+	{
+		foreach ($methods as $method) {
+
+			$method = strtoupper($method);
+			$path = $this->prefix . $path;
+			$this->routes[] = [$method, $path, $target];
+		}
 
 		return $this;
 	}
