@@ -14,41 +14,62 @@ class RouteCollection
 	const NODE_PLACEHOLDER = 3;
 	const NODE_CATCHALL = 4;
 
+	const ROUTE_METHOD = 0;
+	const ROUTE_PATH = 1;
+	const ROUTE_TARGET = 2;
+
 	/** @var string */
 	protected $prefix = '';
 
 	/** @var array */
-	protected $tree;
+	protected $routes;
 
-	public function __construct(array $tree = [])
+	public function __construct(array $routes = [])
 	{
-		$this->tree = $tree;
+		$this->routes = $routes;
+	}
+
+	public function getRoutes(): array
+	{
+		return $this->routes;
 	}
 
 	public function getTree(): array
 	{
-		return $this->tree;
+		return $this->buildTree();
 	}
 
 	public function map(array $methods, string $path, $target): self
 	{
-		$handler = [];
 		foreach ($methods as $method) {
+
 			$method = strtoupper($method);
-			$handler[$method] = $target;
+			$path = $this->prefix . $path;
+			$this->routes[] = [$method, $path, $target];
 		}
-
-		$path = $this->prefix . $path;
-		$path = trim($path, '/');
-
-		$tokens = explode('/', $path);
-
-		$this->buildTree($this->tree, $tokens, $handler);
 
 		return $this;
 	}
 
-	protected function buildTree(array &$node, array $tokens, array $handler): void
+	protected function buildTree(): array
+	{
+		$tree = [];
+
+		foreach ($this->routes as $route) {
+
+			$method = $route[self::ROUTE_METHOD];
+			$handler = $route[self::ROUTE_TARGET];
+
+			$path = trim($route[self::ROUTE_PATH], '/');
+			$tokens = explode('/', $path);
+
+			$this->mapTokens($tree, $tokens, $method, $handler);
+		}
+
+		return $tree;
+	}
+
+	protected function mapTokens(array &$node, $tokens, $method, $handler): void
 	{
 		foreach ($tokens as $token) {
 
@@ -88,11 +109,11 @@ class RouteCollection
 
 		$node[self::NODE_LEAF] = true;
 
-		if (isset($node[self::NODE_HANDLER])) {
-			$node[self::NODE_HANDLER] = $handler + $node[self::NODE_HANDLER];
-		} else {
-			$node[self::NODE_HANDLER] = $handler;
+		if (!isset($node[self::NODE_HANDLER])) {
+			$node[self::NODE_HANDLER] = [];
 		}
+
+		$node[self::NODE_HANDLER][$method] = $handler;
 	}
 
 	public function group(string $path, Closure $callback): self

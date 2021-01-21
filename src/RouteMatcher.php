@@ -37,12 +37,7 @@ class RouteMatcher implements RouteMatcherInterface
 
 	public function setValidator(string $id, callable $callback): self
 	{
-		if (!is_callable($callback)) {
-			throw new InvalidArgumentException("Validator for < $id > must be a valid callable");
-		}
-
 		$this->validators[$id] = $callback;
-
 		return $this;
 	}
 
@@ -85,7 +80,7 @@ class RouteMatcher implements RouteMatcherInterface
 						$params[$split[0]] = $token;
 						$result = $this->resolve($pnode, $tokensLeft, $method, $params);
 
-						if ($result->isMatch()) {
+						if ($result->isMatch() || !empty($result->getMethods())) {
 							return $result;
 						}
 
@@ -121,7 +116,7 @@ class RouteMatcher implements RouteMatcherInterface
 
 			$match = isset($node[RC::NODE_HANDLER][$method]);
 			$handler = $match ? $node[RC::NODE_HANDLER][$method] : null;
-			$methods = $match ? array_keys($node[RC::NODE_HANDLER]) : [];
+			$methods = isset($node[RC::NODE_HANDLER]) ? array_keys($node[RC::NODE_HANDLER]) : [];
 
 			return new MatchResult($match, $handler, $methods, $params);
 		}
