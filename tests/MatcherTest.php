@@ -34,10 +34,9 @@ final class MatcherTest extends TestCase
 
 	public function testSetValidator()
 	{
-		$routes = new RouteCollection([
-			['GET', '/validate/:slug:n', 'new-handler'],
-			['GET', '/validate/:slug:w', 'default-handler']
-		]);
+		$routes = new RouteCollection();
+		$routes->get('/validate/:slug:n', 'new-handler');
+		$routes->get('/validate/:slug:w', 'default-handler');
 
 		$matcher = new RouteMatcher($routes->getTree());
 		$matcher->setValidator('n', function ($val) {
@@ -54,9 +53,8 @@ final class MatcherTest extends TestCase
 	public function testInvalidValidator()
 	{
 		$this->expectException(InvalidArgumentException::class);
-		$routes = new RouteCollection([
-			['GET', '/foo/:bar:k', 'handler']
-		]);
+		$routes = new RouteCollection();
+		$routes->get('/foo/:bar:k', 'handler');
 
 		$matcher = new RouteMatcher($routes->getTree());
 		$matcher->match('GET', '/foo/bar');
@@ -64,9 +62,8 @@ final class MatcherTest extends TestCase
 
 	public function testTrailingSlash()
 	{
-		$routes = new RouteCollection([
-			['GET', '/slash', 'slash-handler']
-		]);
+		$routes = new RouteCollection();
+		$routes->get('/slash', 'slash-handler');
 
 		$matcher = new RouteMatcher($routes->getTree());
 		$result1 = $matcher->match('GET', '/slash');
@@ -74,5 +71,18 @@ final class MatcherTest extends TestCase
 
 		$this->assertEquals($result1->isMatch(), $result2->isMatch());
 		$this->assertEquals($result1->getHandler(), $result2->getHandler());
+	}
+
+	public function testMethodNotAllowed()
+	{
+		$routes = new RouteCollection();
+		$routes->get('/product/:id:d', 'get-handler');
+		$routes->post('/product/:number:d', 'post-handler');
+
+		$matcher = new RouteMatcher($routes->getTree());
+		$result = $matcher->match('DELETE', '/product/42');
+
+		$this->assertFalse($result->isMatch());
+		$this->assertSame(['GET', 'POST'], $result->getMethods());
 	}
 }

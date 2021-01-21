@@ -68,6 +68,8 @@ class RouteMatcher implements RouteMatcherInterface
 
 			if (isset($node[RC::NODE_PLACEHOLDER])) { // placeholder
 
+				$allowedMethods = [];
+
 				$placeholder = $node[RC::NODE_PLACEHOLDER];
 				$tokensLeft = array_slice($tokens, $index + 1);
 
@@ -80,8 +82,10 @@ class RouteMatcher implements RouteMatcherInterface
 						$params[$split[0]] = $token;
 						$result = $this->resolve($pnode, $tokensLeft, $method, $params);
 
-						if ($result->isMatch() || !empty($result->getMethods())) {
+						if ($result->isMatch()) {
 							return $result;
+						} else if (!empty($result->getMethods())) {
+							$allowedMethods = array_merge($allowedMethods, $result->getMethods());
 						}
 
 						unset($params[$split[0]]);
@@ -105,7 +109,7 @@ class RouteMatcher implements RouteMatcherInterface
 				}
 			}
 
-			return new MatchResult(false); // token mismatch
+			return new MatchResult(false, null, array_unique($allowedMethods)); // token mismatch
 		}
 
 		if (!empty($node[RC::NODE_LEAF])) {
