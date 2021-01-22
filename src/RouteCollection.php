@@ -14,10 +14,6 @@ class RouteCollection
 	const NODE_PLACEHOLDER = 3;
 	const NODE_CATCHALL = 4;
 
-	const ROUTE_METHOD = 0;
-	const ROUTE_PATH = 1;
-	const ROUTE_TARGET = 2;
-
 	/** @var string */
 	protected $prefix = '';
 
@@ -40,10 +36,10 @@ class RouteCollection
 
 		foreach ($this->routes as $route) {
 
-			$method = $route[self::ROUTE_METHOD];
-			$handler = $route[self::ROUTE_TARGET];
+			$method = $route[0];
+			$handler = $route[2];
 
-			$path = trim($route[self::ROUTE_PATH], '/');
+			$path = trim($route[1], '/');
 			$tokens = explode('/', $path);
 
 			$this->mapTokens($tree, $tokens, $method, $handler);
@@ -112,50 +108,56 @@ class RouteCollection
 		return $this;
 	}
 
-	public function map(array $methods, string $path, $target): self
+	public function map(array $methods, string $path, $handler, string $name = ''): self
 	{
 		foreach ($methods as $method) {
 
 			$method = strtoupper($method);
 			$path = $this->prefix . $path;
-			$this->routes[] = [$method, $path, $target];
+			$route = [$method, $path, $handler];
+
+			if ($name === '') {
+				$this->routes[] = $route;
+			} else {
+				$this->routes[$name] = $route;
+			}
 		}
 
 		return $this;
 	}
 
-	public function get(string $path, $handler): self
+	public function get(string $path, $handler, string $name = ''): self
 	{
-		return $this->map(['GET'], $path, $handler);
+		return $this->map(['GET'], $path, $handler, $name);
 	}
 
-	public function post(string $path, $handler): self
+	public function post(string $path, $handler, string $name = ''): self
 	{
-		return $this->map(['POST'], $path, $handler);
+		return $this->map(['POST'], $path, $handler, $name);
 	}
 
-	public function put(string $path, $handler): self
+	public function put(string $path, $handler, string $name = ''): self
 	{
-		return $this->map(['PUT'], $path, $handler);
+		return $this->map(['PUT'], $path, $handler, $name);
 	}
 
-	public function delete(string $path, $handler): self
+	public function delete(string $path, $handler, string $name = ''): self
 	{
-		return $this->map(['DELETE'], $path, $handler);
+		return $this->map(['DELETE'], $path, $handler, $name);
 	}
 
-	public function patch(string $path, $handler): self
+	public function patch(string $path, $handler, string $name = ''): self
 	{
-		return $this->map(['PATCH'], $path, $handler);
+		return $this->map(['PATCH'], $path, $handler, $name);
 	}
 
-	public function head(string $path, $handler): self
+	public function head(string $path, $handler, string $name = ''): self
 	{
-		return $this->map(['HEAD'], $path, $handler);
+		return $this->map(['HEAD'], $path, $handler, $name);
 	}
 
-	public function options(string $path, $handler): self
+	public function options(string $path, $handler, string $name = ''): self
 	{
-		return $this->map(['OPTIONS'], $path, $handler);
+		return $this->map(['OPTIONS'], $path, $handler, $name);
 	}
 }
