@@ -128,7 +128,7 @@ class RouteMatcher implements RouteMatcherInterface
 		return new MatchResult(false); // not found
 	}
 
-	protected function validate(string $value, string $type): bool
+	public function validate(string $value, string $type): bool
 	{
 		if (!isset($this->validators[$type])) {
 			throw new InvalidArgumentException("No validation function found for < :$type >");
