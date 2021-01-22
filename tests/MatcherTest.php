@@ -39,7 +39,7 @@ final class MatcherTest extends TestCase
 		$routes->get('/validate/:slug:w', 'default-handler');
 
 		$matcher = new RouteMatcher($routes->getTree());
-		$matcher->setValidator('n', function ($val) {
+		$matcher->setValidator('n', function (string $val) {
 			return strpos($val, 'new-') === 0;
 		});
 
