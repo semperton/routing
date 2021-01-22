@@ -4,7 +4,9 @@
 </a>
 <h1>Semperton Routing</h1>
 <p>A lightweight B-tree based routing library for PHP.<br>Supports custom validators and reverse routing.</p>
+○
 </div>
+
 <hr>
 
 ## Beforehand
@@ -59,12 +61,15 @@ $result->getParams(); // ['id' => '3']
 
 ## Placeholder
 
-You can substitute parts of a route with placeholders. They start with a colon followed by a identifier:validator combination:
+You can substitute parts of a route with placeholders. They start with a colon followed by an identifier:validator combination:
 ```
 :path -- no validator
 :id:d -- digit validator
 :name:w -- word validator
 ```
+
+Note that a placeholder MUST take up everything between two slashes e.g. ```/blog/:category/:id:d```.
+Multiple substitutions like ```/:file.:ext``` are not allowed. You should consider custom validators instead.
 
 ## Validators
 
@@ -81,6 +86,9 @@ There are several builtin validators available:
 
 You can add custom validators to the ```RouteMatcher``` for placeholder validation:
 ```php
+use Semperton\Routing\RouteCollection;
+use Semperton\Routing\RouteMatcher;
+
 $routes = new RouteCollection();
 $routes->get('/media/:filename:file', 'handler');
 
@@ -101,3 +109,7 @@ $matcher->validate('readme.txt', 'file'); // true
 $result = $matcher->match('GET', '/media/data.json');
 $result->getParams(); // ['filename' => 'data.json']
 ```
+
+## Reverse Routing
+
+Coming soon...
