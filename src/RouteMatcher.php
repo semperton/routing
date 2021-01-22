@@ -66,9 +66,9 @@ class RouteMatcher implements RouteMatcherInterface
 				continue;
 			}
 
-			if (isset($node[RC::NODE_PLACEHOLDER])) { // placeholder
+			$allowedMethods = [];
 
-				$allowedMethods = [];
+			if (isset($node[RC::NODE_PLACEHOLDER])) { // placeholder
 
 				$placeholder = $node[RC::NODE_PLACEHOLDER];
 				$tokensLeft = array_slice($tokens, $index + 1);
