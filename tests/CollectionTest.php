@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
-use Semperton\Routing\RouteCollection as RC;
+use Semperton\Routing\RouteCollection;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -11,7 +11,7 @@ final class CollectionTest extends TestCase
 {
 	public function testMethodHelpers()
 	{
-		$routes = new RC();
+		$routes = new RouteCollection();
 
 		$routes->map(['GET', 'post', 'PUT', 'PATCH', 'delete', 'OPTIONS', 'HEAD'], '/all', 'all-handler');
 		$routes
@@ -41,23 +41,23 @@ final class CollectionTest extends TestCase
 			['HEAD', '/head', 'head-handler'],
 		];
 
-		$this->assertSame($expected, $routes->getRoutes());
+		$this->assertSame($expected, $routes->toArray());
 	}
 
 	public function testRouteGroups()
 	{
-		$routes = new RC();
+		$routes = new RouteCollection();
 
-		$routes->group('/blog', function (RC $blog) {
+		$routes->group('/blog', function (RouteCollection $blog) {
 			$blog->get('/:slug:w', 'slug-handler');
 			$blog->put('/:id:d', 'id-handler');
 		});
 
-		$routes->group('/user-', function (RC $user) {
+		$routes->group('/user-', function (RouteCollection $user) {
 			$user->get('login', 'login-handler');
 		});
 
-		$routes->group('/user', function (RC $user) {
+		$routes->group('/user', function (RouteCollection $user) {
 			$user->post('-logout', 'logout-handler');
 		});
 
@@ -68,52 +68,56 @@ final class CollectionTest extends TestCase
 			['POST', '/user-logout', 'logout-handler']
 		];
 
-		$this->assertSame($expected, $routes->getRoutes());
+		$this->assertSame($expected, $routes->toArray());
 	}
 
 	public function testRouteTree()
 	{
-		$routes = new RC();
+		$routes = new RouteCollection();
 
 		$routes->get('/admin/*remain', 'admin-handler');
 		$routes->get('/blog', 'blog-handler');
 		$routes->get('/blog/:post_slug:w', 'post-handler');
 		$routes->delete('/category/:name:w/:id:d', 'category-handler');
 
-		$expected = [
-			RC::NODE_STATIC => [
-				'admin' => [
-					RC::NODE_CATCHALL => [
-						'remain' => true
-					],
-					RC::NODE_LEAF => true,
-					RC::NODE_HANDLER => ['GET' => 'admin-handler']
-				],
-				'blog' => [
-					RC::NODE_LEAF => true,
-					RC::NODE_HANDLER => ['GET' => 'blog-handler'],
-					RC::NODE_PLACEHOLDER => [
-						'post_slug:w' => [
-							RC::NODE_LEAF => true,
-							RC::NODE_HANDLER => ['GET' => 'post-handler']
-						]
-					]
-				],
-				'category' => [
-					RC::NODE_PLACEHOLDER => [
-						'name:w' => [
-							RC::NODE_PLACEHOLDER => [
-								'id:d' => [
-									RC::NODE_LEAF => true,
-									RC::NODE_HANDLER => ['DELETE' => 'category-handler'],
-								]
-							]
-						]
-					]
-				]
-			]
-		];
+		$tree = $routes->toTree();
+		echo var_export($tree, true);
+		die();
 
-		$this->assertSame($expected, $routes->getTree());
+		// $expected = [
+		// 	RC::NODE_STATIC => [
+		// 		'admin' => [
+		// 			RC::NODE_CATCHALL => [
+		// 				'remain' => true
+		// 			],
+		// 			RC::NODE_LEAF => true,
+		// 			RC::NODE_HANDLER => ['GET' => 'admin-handler']
+		// 		],
+		// 		'blog' => [
+		// 			RC::NODE_LEAF => true,
+		// 			RC::NODE_HANDLER => ['GET' => 'blog-handler'],
+		// 			RC::NODE_PLACEHOLDER => [
+		// 				'post_slug:w' => [
+		// 					RC::NODE_LEAF => true,
+		// 					RC::NODE_HANDLER => ['GET' => 'post-handler']
+		// 				]
+		// 			]
+		// 		],
+		// 		'category' => [
+		// 			RC::NODE_PLACEHOLDER => [
+		// 				'name:w' => [
+		// 					RC::NODE_PLACEHOLDER => [
+		// 						'id:d' => [
+		// 							RC::NODE_LEAF => true,
+		// 							RC::NODE_HANDLER => ['DELETE' => 'category-handler'],
+		// 						]
+		// 					]
+		// 				]
+		// 			]
+		// 		]
+		// 	]
+		// ];
+
+		// $this->assertSame($expected, $routes->toTree());
 	}
 }
