@@ -5,105 +5,65 @@ declare(strict_types=1);
 namespace Semperton\Routing;
 
 use Closure;
+use InvalidArgumentException;
+use OutOfBoundsException;
 
 class RouteCollection
 {
-	const NODE_LEAF = 0;
-	const NODE_HANDLER = 1;
-	const NODE_STATIC = 2;
-	const NODE_PLACEHOLDER = 3;
-	const NODE_CATCHALL = 4;
+	/** @var string */
+	protected $pathPrefix = '';
 
 	/** @var string */
-	protected $prefix = '';
+	protected $namePrefix = '';
 
-	/** @var array */
+	/** @var Route[] */
 	protected $routes = [];
 
-	public function getRoutes(): array
+	/** @var Builder */
+	protected $builder;
+
+	public function __construct()
 	{
-		return $this->routes;
+		$this->builder = new Builder();
 	}
 
-	public function getTree(): array
+	public function toArray(): array
 	{
-		return $this->buildTree();
-	}
-
-	protected function buildTree(): array
-	{
-		$tree = [];
-
+		$routes = [];
 		foreach ($this->routes as $route) {
-
-			$method = $route[0];
-			$handler = $route[2];
-
-			$path = trim($route[1], '/');
-			$tokens = explode('/', $path);
-
-			$this->mapTokens($tree, $tokens, $method, $handler);
+			$routes[] = [$route->method, $route->path, $route->handler];
 		}
-
-		return $tree;
+		return $routes;
 	}
 
-	protected function mapTokens(array &$node, $tokens, $method, $handler): void
+	public function toTree(): TreeNode
 	{
-		foreach ($tokens as $token) {
-
-			if ($token === '') { // index
-				break;
-			}
-
-			if ($token[0] === '*') { // catchall
-
-				if (!isset($node[self::NODE_CATCHALL])) {
-					$node[self::NODE_CATCHALL] = [];
-				}
-				$token = substr($token, 1);
-				$node[self::NODE_CATCHALL][$token] = true;
-				break;
-			}
-
-			$switch = self::NODE_STATIC;
-
-			if ($token[0] === ':') { // placeholder
-				$switch = self::NODE_PLACEHOLDER;
-				$token = substr($token, 1);
-			}
-
-			if (!isset($node[$switch])) {
-				$node[$switch] = [];
-			}
-
-			$treePath = &$node[$switch];
-
-			if (!isset($treePath[$token])) {
-				$treePath[$token] = []; // new node
-			}
-
-			$node = &$treePath[$token];
-		}
-
-		$node[self::NODE_LEAF] = true;
-
-		if (!isset($node[self::NODE_HANDLER])) {
-			$node[self::NODE_HANDLER] = [];
-		}
-
-		$node[self::NODE_HANDLER][$method] = $handler;
+		return $this->builder->buildTree($this->routes);
 	}
 
-	public function group(string $path, Closure $callback): self
+	public function reverse(string $name, array $params): string
 	{
-		$currentPrefix = $this->prefix;
+		if (!isset($this->routes[$name])) {
+			throw new OutOfBoundsException("The route with name < $name > does not exist");
+		}
 
-		$this->prefix .= $path;
+		$route = $this->routes[$name];
+
+		return $this->builder->buildRoute($route, $params);
+	}
+
+	public function group(string $path, Closure $callback, string $name = ''): self
+	{
+		$currentPath = $this->pathPrefix;
+		$currentName = $this->namePrefix;
+
+		$this->pathPrefix .= $path;
+		$this->namePrefix .= $name;
 
 		$callback($this);
 
-		$this->prefix = $currentPrefix;
+		$this->pathPrefix = $currentPath;
+		$this->namePrefix = $currentName;
 
 		return $this;
 	}
@@ -113,12 +73,13 @@ class RouteCollection
 		foreach ($methods as $method) {
 
 			$method = strtoupper($method);
-			$path = $this->prefix . $path;
-			$route = [$method, $path, $handler];
+			$path = $this->pathPrefix . $path;
+			$route = new Route($method, $path, $handler);
 
 			if ($name === '') {
 				$this->routes[] = $route;
 			} else {
+				$name = $this->namePrefix . $name;
 				$this->routes[$name] = $route;
 			}
 		}

@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
+use Semperton\Routing\TreeNode;
 use InvalidArgumentException;
-use Semperton\Routing\RouteCollection as RC;
 
 class RouteMatcher implements RouteMatcherInterface
 {
-	protected $routeTree;
-
-	protected $basePath = '';
-
 	// https://www.php.net/manual/en/ref.ctype.php
 	protected $validators = [
 		'A' => 'ctype_alnum',
@@ -23,10 +19,15 @@ class RouteMatcher implements RouteMatcherInterface
 		'u' => 'ctype_upper'
 	];
 
-	public function __construct(array $routeTree)
+	protected $basePath = '';
+
+	/** @var TreeNode */
+	protected $routeTree;
+
+	public function __construct(TreeNode $routeTree)
 	{
 		$this->routeTree = $routeTree;
-		$this->setValidator('w', [$this, 'validateWord']);
+		$this->validators['w'] = [$this, 'validateWord'];
 	}
 
 	public function setBasePath(string $path): self
@@ -47,80 +48,70 @@ class RouteMatcher implements RouteMatcherInterface
 			$path = substr($path, strlen($this->basePath));
 		}
 
-		$path = trim($path, '/');
-		$tokens = explode('/', $path);
+		$tokens = explode('/', trim($path, '/'));
 
 		return $this->resolve($this->routeTree, $tokens, $method, $params);
 	}
 
-	protected function resolve(array $node, array $tokens, string $method, array $params): MatchResult
+	protected function resolve(TreeNode $node, array $tokens, string $method, array $params): MatchResult
 	{
-		foreach ($tokens as $index => $token) {
+		foreach ($tokens as $i => $token) {
 
 			if ($token === '') { // index
 				break;
 			}
 
-			if (isset($node[RC::NODE_STATIC][$token])) { // static path
-				$node = $node[RC::NODE_STATIC][$token];
+			if (isset($node->static[$token])) { // static path
+				$node = $node->static[$token];
 				continue;
 			}
 
 			$allowedMethods = [];
+			$tokensLeft = array_slice($tokens, $i + 1);
 
-			if (isset($node[RC::NODE_PLACEHOLDER])) { // placeholder
+			foreach ($node->placeholder as $pname => $pnode) { // placeholder
 
-				$placeholder = $node[RC::NODE_PLACEHOLDER];
-				$tokensLeft = array_slice($tokens, $index + 1);
+				$split = explode(':', $pname);
 
-				foreach ($placeholder as $pname => $pnode) {
+				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-					$split = explode(':', $pname);
+					$params[$split[0]] = $token;
+					$result = $this->resolve($pnode, $tokensLeft, $method, $params);
 
-					if (empty($split[1]) || $this->validate($token, $split[1])) {
-
-						$params[$split[0]] = $token;
-						$result = $this->resolve($pnode, $tokensLeft, $method, $params);
-
-						if ($result->isMatch()) {
-							return $result;
-						} else if (!empty($result->getMethods())) {
-							$allowedMethods = array_merge($allowedMethods, $result->getMethods());
-						}
-
-						unset($params[$split[0]]);
+					if ($result->isMatch()) {
+						return $result;
+					} else if (!empty($result->getMethods())) {
+						$allowedMethods = array_merge($allowedMethods, $result->getMethods());
 					}
+
+					unset($params[$split[0]]);
 				}
 			}
 
-			if (isset($node[RC::NODE_CATCHALL])) {
+			foreach ($node->catchall as $cname => $val) { // catchall
 
-				$catchall = $node[RC::NODE_CATCHALL];
+				$split = explode(':', $cname);
 
-				foreach ($catchall as $cname => $val) { // check catchall
+				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
-					$split = explode(':', $cname);
-
-					if (empty($split[1]) || $this->validate($token, $split[1])) {
-
-						$params[$split[0]] = implode('/', array_slice($tokens, $index));
-						break 2;
-					}
+					array_unshift($tokensLeft, $token);
+					$params[$split[0]] = implode('/', $tokensLeft);
+					break 2;
 				}
 			}
 
 			return new MatchResult(false, null, array_unique($allowedMethods)); // token mismatch
 		}
 
-		if (!empty($node[RC::NODE_LEAF])) {
+		if ($node->leaf) {
 
-			if ($method === 'HEAD' && !isset($node[RC::NODE_HANDLER][$method])) { // HEAD fallback
+			if ($method === 'HEAD' && !isset($node->handler[$method])) { // HEAD fallback
 				$method = 'GET';
 			}
 
-			$match = isset($node[RC::NODE_HANDLER][$method]);
-			$handler = $match ? $node[RC::NODE_HANDLER][$method] : null;
-			$methods = isset($node[RC::NODE_HANDLER]) ? array_keys($node[RC::NODE_HANDLER]) : [];
+			$match = isset($node->handler[$method]);
+			$handler = $match ? $node->handler[$method] : null;
+			$methods = array_keys($node->handler);
 
 			return new MatchResult($match, $handler, $methods, $params);
 		}
@@ -131,7 +122,8 @@ class RouteMatcher implements RouteMatcherInterface
 	public function validate(string $value, string $type): bool
 	{
 		if (!isset($this->validators[$type])) {
-			throw new InvalidArgumentException("No validation function found for < :$type >");
+			$validators = implode(', ', array_keys($this->validators));
+			throw new InvalidArgumentException("Validator < $type > not found in ($validators)");
 		}
 
 		$callback = $this->validators[$type];
