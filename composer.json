@@ -8,9 +8,14 @@
             "Semperton\\Routing\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Semperton\\Routing\\Tests\\": "tests/"
+        }
+    },
     "scripts": {
         "test": "phpunit tests",
-        "bench": "phpbench run tests --report=default"
+        "bench": "phpbench run benchmark --report=default"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5",

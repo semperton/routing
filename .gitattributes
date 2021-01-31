@@ -2,3 +2,4 @@
 /.gitignore		export-ignore
 /README.md		export-ignore
 /tests			export-ignore
+/benchmark		export-ignore
