@@ -50,7 +50,7 @@ The ```RouteMatcher``` is used to match a request method and path against all de
 ```php
 use Semperton\Routing\RouteMatcher;
 
-$matcher = new RouteMatcher($routes->getTree());
+$matcher = new RouteMatcher($routes->routeTree());
 
 $result = $matcher->match('GET', '/blog/article/3');
 
@@ -92,7 +92,7 @@ use Semperton\Routing\RouteMatcher;
 $routes = new RouteCollection();
 $routes->get('/media/:filename:file', 'handler');
 
-$matcher = new RouteMatcher($routes->getTree());
+$matcher = new RouteMatcher($routes->routeTree());
 $matcher->setValidator('file', function (string $value) {
 
 	$parts = explode('.', $value);
@@ -112,4 +112,15 @@ $result->getParams(); // ['filename' => 'data.json']
 
 ## Reverse Routing
 
-Coming soon...
+The ```RouteCollection``` can be used to build known routes with the ```reverse()``` method.
+```php
+use Semperton\Routing\RouteCollection;
+
+$routes = new RouteCollection();
+
+// add a named route
+$routes->get('/product/:id:d', 'product-route');
+
+// build it
+$routes->reverse('product-route', ['id' => 42]); // '/product/42'
+```
