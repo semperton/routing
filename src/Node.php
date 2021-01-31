@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
-final class TreeNode
+final class Node
 {
 	/** @var bool */
 	public $leaf = false;
@@ -21,9 +21,9 @@ final class TreeNode
 	/** @var array */
 	public $catchall = [];
 
-	public static function __set_state($props): object
+	public static function __set_state($props): Node
 	{
-		$node = new Self();
+		$node = new self();
 		$node->leaf = $props['leaf'];
 		$node->handler = $props['handler'];
 		$node->static = $props['static'];

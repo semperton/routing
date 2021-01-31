@@ -16,40 +16,57 @@ class RouteCollection
 	/** @var string */
 	protected $namePrefix = '';
 
-	/** @var Route[] */
-	protected $routes = [];
+	/** @var array */
+	protected $namedRoutes = [];
 
-	/** @var Builder */
-	protected $builder;
+	/** @var Node */
+	protected $routeTree;
 
 	public function __construct()
 	{
-		$this->builder = new Builder();
+		$this->routeTree = new Node();
 	}
 
-	public function toArray(): array
+	public function routeTree(): Node
 	{
-		$routes = [];
-		foreach ($this->routes as $route) {
-			$routes[] = [$route->method, $route->path, $route->handler];
-		}
-		return $routes;
-	}
-
-	public function toTree(): TreeNode
-	{
-		return $this->builder->buildTree($this->routes);
+		return clone $this->routeTree;
 	}
 
 	public function reverse(string $name, array $params): string
 	{
-		if (!isset($this->routes[$name])) {
+		if (!isset($this->namedRoutes[$name])) {
 			throw new OutOfBoundsException("The route with name < $name > does not exist");
 		}
 
-		$route = $this->routes[$name];
+		$path = $this->namedRoutes[$name];
 
-		return $this->builder->buildRoute($route, $params);
+		$leadingSlash = $path[0] === '/';
+		$trailingSlash = $path[-1] === '/';
+
+		$tokens = explode('/', trim($path, '/'));
+
+		foreach ($tokens as $i => &$token) {
+
+			$first = $token[0];
+			if ($first === ':' || $first === '*') {
+
+				$split = explode(':', substr($token, 1));
+				if (!isset($params[$split[0]])) {
+					throw new InvalidArgumentException("No value defined for placeholder < $split[0] >");
+				}
+
+				$token = $params[$split[0]];
+
+				if ($first === '*') {
+					$tokens = array_slice($tokens, 0, $i + 1);
+					break;
+				}
+			}
+		}
+
+		$path = ($leadingSlash ? '/' : '') . implode('/', $tokens) . ($trailingSlash ? '/' : '');
+
+		return $path;
 	}
 
 	public function group(string $path, Closure $callback, string $name = ''): self
@@ -68,23 +85,61 @@ class RouteCollection
 		return $this;
 	}
 
-	public function map(array $methods, string $path, $handler, string $name = ''): self
+	public function map(array $methods, string $path, $target, string $name = ''): self
 	{
+		$handler = [];
 		foreach ($methods as $method) {
-
 			$method = strtoupper($method);
-			$path = $this->pathPrefix . $path;
-			$route = new Route($method, $path, $handler);
-
-			if ($name === '') {
-				$this->routes[] = $route;
-			} else {
-				$name = $this->namePrefix . $name;
-				$this->routes[$name] = $route;
-			}
+			$handler[$method] = $target;
 		}
 
+		$path = $this->pathPrefix . $path;
+
+		if ($name !== '') {
+			$name = $this->namePrefix . $name;
+			$this->namedRoutes[$name] = $path;
+		}
+
+		$tokens = explode('/', trim($path, '/'));
+		$this->mapTokens($this->routeTree, $tokens, $handler);
+
 		return $this;
+	}
+
+	protected function mapTokens(Node $node, array $tokens, array $handler): void
+	{
+		foreach ($tokens as $token) {
+
+			if ($token === '') { // index
+				break;
+			}
+
+			$first = $token[0];
+
+			if ($first === '*') { // catchall
+				$token = substr($token, 1);
+				$node->catchall[$token] = true;
+				break;
+			}
+
+			$key = 'static';
+
+			if ($first === ':') { // placeholder
+				$token = substr($token, 1);
+				$key = 'placeholder';
+			}
+
+			$path = &$node->{$key};
+
+			if (!isset($path[$token])) {
+				$path[$token] = new Node();
+			}
+
+			$node = $path[$token];
+		}
+
+		$node->leaf = true;
+		$node->handler = $handler + $node->handler;
 	}
 
 	public function get(string $path, $handler, string $name = ''): self

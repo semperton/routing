@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
-use Semperton\Routing\TreeNode;
 use InvalidArgumentException;
 
 class RouteMatcher implements RouteMatcherInterface
@@ -21,10 +20,10 @@ class RouteMatcher implements RouteMatcherInterface
 
 	protected $basePath = '';
 
-	/** @var TreeNode */
+	/** @var Node */
 	protected $routeTree;
 
-	public function __construct(TreeNode $routeTree)
+	public function __construct(Node $routeTree)
 	{
 		$this->routeTree = $routeTree;
 		$this->validators['w'] = [$this, 'validateWord'];
@@ -53,7 +52,7 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this->resolve($this->routeTree, $tokens, $method, $params);
 	}
 
-	protected function resolve(TreeNode $node, array $tokens, string $method, array $params): MatchResult
+	protected function resolve(Node $node, array $tokens, string $method, array $params): MatchResult
 	{
 		foreach ($tokens as $i => $token) {
 
