@@ -41,7 +41,7 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this;
 	}
 
-	public function match(string $method, string $path, array $params = []): MatchResultInterface
+	public function match(string $method, string $path): MatchResultInterface
 	{
 		if ($this->basePath !== '' && strpos($path, $this->basePath) === 0) {
 			$path = substr($path, strlen($this->basePath));
@@ -49,7 +49,7 @@ class RouteMatcher implements RouteMatcherInterface
 
 		$tokens = explode('/', trim($path, '/'));
 
-		return $this->resolve($this->routeTree, $tokens, $method, $params);
+		return $this->resolve($this->routeTree, $tokens, $method, []);
 	}
 
 	protected function resolve(Node $node, array $tokens, string $method, array $params): MatchResult
