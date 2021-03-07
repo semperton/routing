@@ -61,7 +61,7 @@ $result->getParams(); // ['id' => '3']
 
 ## Placeholder
 
-You can substitute parts of a route with placeholders. They start with a colon followed by an identifier:validator combination:
+You can substitute parts of a route with placeholders. They start with a colon followed by an ```identifier:validator``` combination:
 ```
 :path -- no validator
 :id:d -- digit validator
