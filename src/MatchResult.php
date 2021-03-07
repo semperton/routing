@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
-final class MatchResult
+final class MatchResult implements MatchResultInterface
 {
 	/** @var bool */
 	protected $match;

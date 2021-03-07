@@ -41,7 +41,7 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this;
 	}
 
-	public function match(string $method, string $path, array $params = []): MatchResult
+	public function match(string $method, string $path, array $params = []): MatchResultInterface
 	{
 		if ($this->basePath !== '' && strpos($path, $this->basePath) === 0) {
 			$path = substr($path, strlen($this->basePath));
