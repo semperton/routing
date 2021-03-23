@@ -70,7 +70,7 @@ class RouteMatcher implements RouteMatcherInterface
 
 			foreach ($node->placeholder as $pname => $pnode) { // placeholder
 
-				$split = explode(':', $pname);
+				$split = explode(':', $pname, 2);
 
 				if (empty($split[1]) || $this->validate($token, $split[1])) {
 
@@ -89,7 +89,7 @@ class RouteMatcher implements RouteMatcherInterface
 
 			foreach ($node->catchall as $cname => $val) { // catchall
 
-				$split = explode(':', $cname);
+				$split = explode(':', $cname, 2);
 
 				if (empty($split[1]) || $this->validate($token, $split[1])) {
 

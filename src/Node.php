@@ -21,7 +21,7 @@ final class Node
 	/** @var array */
 	public $catchall = [];
 
-	public static function __set_state($props): Node
+	public static function __set_state(array $props): Node
 	{
 		$node = new self();
 		$node->leaf = $props['leaf'];

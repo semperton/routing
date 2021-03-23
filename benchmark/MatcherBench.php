@@ -56,7 +56,7 @@ final class MatcherBench
 		$routes->map(['GET'],			'/admin/category/:category:d/edit', 39);
 		$routes->map(['PUT', 'PATCH'],	'/admin/category/:category:d', 40);
 
-		$this->matcher = new RouteMatcher($routes->routeTree());
+		$this->matcher = new RouteMatcher($routes->getRouteTree());
 	}
 
 	/**
