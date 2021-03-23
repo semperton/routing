@@ -50,7 +50,7 @@ The ```RouteMatcher``` is used to match a request method and path against all de
 ```php
 use Semperton\Routing\RouteMatcher;
 
-$matcher = new RouteMatcher($routes->routeTree());
+$matcher = new RouteMatcher($routes->getRouteTree());
 
 $result = $matcher->match('GET', '/blog/article/3');
 
@@ -92,7 +92,7 @@ use Semperton\Routing\RouteMatcher;
 $routes = new RouteCollection();
 $routes->get('/media/:filename:file', 'handler');
 
-$matcher = new RouteMatcher($routes->routeTree());
+$matcher = new RouteMatcher($routes->getRouteTree());
 $matcher->setValidator('file', function (string $value) {
 
 	$parts = explode('.', $value);
