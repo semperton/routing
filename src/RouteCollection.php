@@ -50,7 +50,7 @@ class RouteCollection
 			$first = $token[0];
 			if ($first === ':' || $first === '*') {
 
-				$split = explode(':', substr($token, 1), 1);
+				$split = explode(':', substr($token, 1), 2);
 				if (!isset($params[$split[0]])) {
 					throw new InvalidArgumentException("No value defined for placeholder < $split[0] >");
 				}
