@@ -7,8 +7,6 @@ use Semperton\Routing\MatchResult;
 use Semperton\Routing\RouteCollection;
 use Semperton\Routing\RouteMatcher;
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
 final class MatcherTest extends TestCase
 {
 	public function testMatchResult()

@@ -6,8 +6,6 @@ use PHPUnit\Framework\TestCase;
 use Semperton\Routing\RouteCollection;
 use Semperton\Routing\Tests\DummyCollection;
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
 final class CollectionTest extends TestCase
 {
 	public function testMethodHelpers()
