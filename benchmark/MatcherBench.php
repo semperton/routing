@@ -6,8 +6,6 @@ use PHPUnit\Framework\Assert;
 use Semperton\Routing\RouteCollection;
 use Semperton\Routing\RouteMatcher;
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
 final class MatcherBench
 {
 	protected $matcher;
