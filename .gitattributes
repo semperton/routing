@@ -4,3 +4,4 @@
 /tests			export-ignore
 /benchmark		export-ignore
 /phpbench.json	export-ignore
+/psalm.xml		export-ignore
