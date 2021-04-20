@@ -9,16 +9,16 @@ final class Node
 	/** @var bool */
 	public $leaf = false;
 
-	/** @var array */
+	/** @var array<string, mixed> */
 	public $handler = [];
 
-	/** @var array */
+	/** @var array<string, Node> */
 	public $static = [];
 
-	/** @var array */
+	/** @var array<string, Node> */
 	public $placeholder = [];
 
-	/** @var array */
+	/** @var array<string, true> */
 	public $catchall = [];
 
 	public static function __set_state(array $props): Node

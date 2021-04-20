@@ -16,7 +16,7 @@ class RouteCollection
 	/** @var string */
 	protected $namePrefix = '';
 
-	/** @var array */
+	/** @var array<string, string> */
 	protected $namedRoutes = [];
 
 	/** @var Node */
@@ -32,6 +32,9 @@ class RouteCollection
 		return clone $this->routeTree;
 	}
 
+	/**
+	 * @param array<string, scalar> $params
+	 */
 	public function reverse(string $name, array $params): string
 	{
 		if (!isset($this->namedRoutes[$name])) {
@@ -85,6 +88,10 @@ class RouteCollection
 		return $this;
 	}
 
+	/**
+	 * @param array<int, string> $methods
+	 * @param mixed $target
+	 */
 	public function map(array $methods, string $path, $target, string $name = ''): self
 	{
 		$handler = [];
@@ -106,6 +113,10 @@ class RouteCollection
 		return $this;
 	}
 
+	/**
+	 * @param array<int, string> $tokens
+	 * @param array<string, mixed> $handler
+	 */
 	protected function mapTokens(Node $node, array $tokens, array $handler): void
 	{
 		foreach ($tokens as $token) {
@@ -142,36 +153,57 @@ class RouteCollection
 		$node->handler = $handler + $node->handler;
 	}
 
+	/**
+	 * @param mixed $handler
+	 */
 	public function get(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['GET'], $path, $handler, $name);
 	}
 
+	/**
+	 * @param mixed $handler
+	 */
 	public function post(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['POST'], $path, $handler, $name);
 	}
 
+	/**
+	 * @param mixed $handler
+	 */
 	public function put(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['PUT'], $path, $handler, $name);
 	}
 
+	/**
+	 * @param mixed $handler
+	 */
 	public function delete(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['DELETE'], $path, $handler, $name);
 	}
 
+	/**
+	 * @param mixed $handler
+	 */
 	public function patch(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['PATCH'], $path, $handler, $name);
 	}
 
+	/**
+	 * @param mixed $handler
+	 */
 	public function head(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['HEAD'], $path, $handler, $name);
 	}
 
+	/**
+	 * @param mixed $handler
+	 */
 	public function options(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['OPTIONS'], $path, $handler, $name);

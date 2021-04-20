@@ -9,6 +9,7 @@ use InvalidArgumentException;
 class RouteMatcher implements RouteMatcherInterface
 {
 	// https://www.php.net/manual/en/ref.ctype.php
+	/** @var array<string, callable> */
 	protected $validators = [
 		'A' => 'ctype_alnum',
 		'a' => 'ctype_alpha',
@@ -18,6 +19,7 @@ class RouteMatcher implements RouteMatcherInterface
 		'u' => 'ctype_upper'
 	];
 
+	/** @var string */
 	protected $basePath = '';
 
 	/** @var Node */
@@ -52,6 +54,10 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this->resolve($this->routeTree, $tokens, $method, []);
 	}
 
+	/**
+	 * @param array<int, string> $tokens
+	 * @param array<string, string> $params
+	 */
 	protected function resolve(Node $node, array $tokens, string $method, array $params): MatchResult
 	{
 		foreach ($tokens as $i => $token) {

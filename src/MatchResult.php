@@ -12,12 +12,17 @@ final class MatchResult implements MatchResultInterface
 	/** @var mixed */
 	protected $handler;
 
-	/** @var string[] */
+	/** @var array<int, string> */
 	protected $methods;
 
-	/** @var array */
+	/** @var array<string, scalar> */
 	protected $params;
 
+	/**
+	 * @param mixed $handler
+	 * @param array<int, string> $methods
+	 * @param array<string, scalar> $params
+	 */
 	public function __construct(bool $match, $handler = null, array $methods = [], array $params = [])
 	{
 		$this->match = $match;
@@ -31,6 +36,9 @@ final class MatchResult implements MatchResultInterface
 		return $this->match;
 	}
 
+	/**
+	 * @return mixed
+	 */
 	public function getHandler()
 	{
 		return $this->handler;
