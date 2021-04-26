@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use Semperton\Routing\RouteCollection;
+use Semperton\Routing\RouteMatcher;
 use Semperton\Routing\Tests\DummyCollection;
 
 final class CollectionTest extends TestCase
 {
-	public function testMethodHelpers()
+	public function testMethodHelpers(): void
 	{
 		$routes = new DummyCollection();
 
@@ -43,7 +44,7 @@ final class CollectionTest extends TestCase
 		$this->assertSame($expected, $routes->routes);
 	}
 
-	public function testRouteGroups()
+	public function testRouteGroups(): void
 	{
 		$routes = new DummyCollection();
 
@@ -70,7 +71,7 @@ final class CollectionTest extends TestCase
 		$this->assertSame($expected, $routes->routes);
 	}
 
-	public function testNamedRoutes()
+	public function testNamedRoutes(): void
 	{
 		$routes = new DummyCollection();
 
@@ -88,13 +89,16 @@ final class CollectionTest extends TestCase
 		$this->assertEquals('/category/new', $route);
 	}
 
-	// public function testRouteTree()
-	// {
-	// 	$routes = new RouteCollection();
+	public function testCloneCollection(): void
+	{
+		$collection = new RouteCollection();
+		$collection2 = clone $collection;
 
-	// 	$routes->get('/admin/*remain', 'admin-handler');
-	// 	$routes->get('/blog', 'blog-handler');
-	// 	$routes->get('/blog/:post_slug:w', 'post-handler');
-	// 	$routes->delete('/category/:name:w/:id:d', 'category-handler');;
-	// }
+		$collection2->get('/blog', 'blog-route');
+
+		$matcher = new RouteMatcher($collection->getRouteTree());
+		$result = $matcher->match('GET', '/blog');
+
+		$this->assertFalse($result->isMatch());
+	}
 }

@@ -27,6 +27,11 @@ class RouteCollection
 		$this->routeTree = new Node();
 	}
 
+	public function __clone()
+	{
+		$this->routeTree = clone $this->routeTree;
+	}
+
 	public function getRouteTree(): Node
 	{
 		return clone $this->routeTree;
