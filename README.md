@@ -69,7 +69,7 @@ You can substitute parts of a route with placeholders. They start with a colon f
 ```
 
 Note that a placeholder MUST take up everything between two slashes e.g. ```/blog/:category/:id:d```.
-Multiple substitutions like ```/:file.:ext``` are not allowed. You should consider custom validators instead.
+Multiple substitutions like ```/:document-:id.html``` are not allowed. You should consider custom validators instead.
 
 ## Validators
 
@@ -95,9 +95,9 @@ $routes->get('/media/:filename:file', 'handler');
 $matcher = new RouteMatcher($routes->getRouteTree());
 $matcher->setValidator('file', function (string $value) {
 
-	$parts = explode('.', $value);
+	$parts = explode('.', $value, 2);
 
-	if(count($parts) >= 2){
+	if(isset($parts[1])){
 		return true;
 	}
 
