@@ -62,10 +62,6 @@ class RouteMatcher implements RouteMatcherInterface
 	{
 		foreach ($tokens as $i => $token) {
 
-			if ($token === '') { // index
-				break;
-			}
-
 			if (isset($node->static[$token])) { // static path
 				$node = $node->static[$token];
 				continue;
