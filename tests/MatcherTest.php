@@ -9,7 +9,7 @@ use Semperton\Routing\RouteMatcher;
 
 final class MatcherTest extends TestCase
 {
-	public function testMatchResult()
+	public function testMatchResult(): void
 	{
 		$routes = new RouteCollection();
 		$routes->post('/category/:category:w/:id:d', 'post-handler');
@@ -30,7 +30,7 @@ final class MatcherTest extends TestCase
 		$this->assertSame(['DELETE', 'POST'], $result->getMethods());
 	}
 
-	public function testSetValidator()
+	public function testSetValidator(): void
 	{
 		$routes = new RouteCollection();
 		$routes->get('/validate/:slug:n', 'new-handler');
@@ -48,7 +48,7 @@ final class MatcherTest extends TestCase
 		$this->assertEquals('new-handler', $result2->getHandler());
 	}
 
-	public function testInvalidValidator()
+	public function testInvalidValidator(): void
 	{
 		$this->expectException(InvalidArgumentException::class);
 		$routes = new RouteCollection();
@@ -58,7 +58,7 @@ final class MatcherTest extends TestCase
 		$matcher->match('GET', '/foo/bar');
 	}
 
-	public function testTrailingSlash()
+	public function testTrailingSlash(): void
 	{
 		$routes = new RouteCollection();
 		$routes->get('/slash', 'slash-handler');
@@ -71,7 +71,7 @@ final class MatcherTest extends TestCase
 		$this->assertEquals($result1->getHandler(), $result2->getHandler());
 	}
 
-	public function testMethodNotAllowed()
+	public function testMethodNotAllowed(): void
 	{
 		$routes = new RouteCollection();
 		$routes->get('/product/:id:d', 'get-handler');
@@ -82,5 +82,16 @@ final class MatcherTest extends TestCase
 
 		$this->assertFalse($result->isMatch());
 		$this->assertSame(['GET', 'POST'], $result->getMethods());
+	}
+
+	public function testWildcard(): void
+	{
+		$routes = new RouteCollection();
+		$routes->get('/*path', 'get-handler');
+
+		$matcher = new RouteMatcher($routes->getRouteTree());
+		$result = $matcher->match('GET', '/admin/users/');
+
+		$this->assertSame(['path' => 'admin/users'], $result->getParams());
 	}
 }
