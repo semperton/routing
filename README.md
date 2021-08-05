@@ -59,7 +59,7 @@ $result->getHandler(); // 'article-handler'
 $result->getParams(); // ['id' => '3']
 ```
 
-## Placeholder
+## Placeholders
 
 You can substitute parts of a route with placeholders. They start with a colon followed by an ```identifier:validator``` combination:
 ```
@@ -70,6 +70,16 @@ You can substitute parts of a route with placeholders. They start with a colon f
 
 Note that a placeholder MUST take up everything between two slashes e.g. ```/blog/:category/:id:d```.
 Multiple substitutions like ```/:file.:ext``` are not allowed. You should consider custom validators instead.
+
+## Wildcards
+
+Wildcards can be used at the end of a route (catchall handler):
+```php
+$routes->get('/*path', 'admin-handler');
+$result = $matcher->match('GET', '/admin/users');
+$result->getParams(); // ['path' => 'admin/users']
+```
+Note that wildcards are always evaluated last.
 
 ## Validators
 
