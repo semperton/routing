@@ -21,6 +21,9 @@ final class Node
 	/** @var array<string, true> */
 	public $catchall = [];
 
+	/**
+	 * @psalm-suppress MixedAssignment
+	 */
 	public static function __set_state(array $props): Node
 	{
 		$node = new self();

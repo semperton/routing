@@ -102,6 +102,7 @@ class RouteCollection
 		$handler = [];
 		foreach ($methods as $method) {
 			$method = strtoupper($method);
+			/** @psalm-suppress MixedAssignment */
 			$handler[$method] = $target;
 		}
 
@@ -145,12 +146,14 @@ class RouteCollection
 				$key = 'placeholder';
 			}
 
+			/** @var array */
 			$path = &$node->{$key};
 
 			if (!isset($path[$token])) {
 				$path[$token] = new Node();
 			}
 
+			/** @var Node */
 			$node = $path[$token];
 		}
 
