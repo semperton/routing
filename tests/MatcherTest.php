@@ -95,4 +95,15 @@ final class MatcherTest extends TestCase
 		$this->assertFalse($result->isMatch());
 		$this->assertSame(['GET', 'POST'], $result->getMethods());
 	}
+
+	public function testWildcard(): void
+	{
+		$routes = new RouteCollection();
+		$routes->get('/*path', 'get-handler');
+
+		$matcher = new RouteMatcher($routes->getRouteTree());
+		$result = $matcher->match('GET', '/admin/users/');
+
+		$this->assertSame(['path' => 'admin/users'], $result->getParams());
+	}
 }
