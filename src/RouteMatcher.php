@@ -62,10 +62,6 @@ class RouteMatcher implements RouteMatcherInterface
 	{
 		foreach ($tokens as $i => $token) {
 
-			if ($token === '') { // index
-				break;
-			}
-
 			if (isset($node->static[$token])) { // static path
 				$node = $node->static[$token];
 				continue;
@@ -93,7 +89,7 @@ class RouteMatcher implements RouteMatcherInterface
 				}
 			}
 
-			foreach ($node->catchall as $cname => $val) { // catchall
+			foreach ($node->catchall as $cname => $_) { // catchall
 
 				$split = explode(':', $cname, 2);
 
@@ -105,7 +101,10 @@ class RouteMatcher implements RouteMatcherInterface
 				}
 			}
 
-			return new MatchResult(false, null, array_unique($allowedMethods)); // token mismatch
+			if ($token !== '') {
+				/** @psalm-suppress MixedArgumentTypeCoercion */
+				return new MatchResult(false, null, array_unique($allowedMethods)); // token mismatch
+			}
 		}
 
 		if ($node->leaf) {
@@ -115,6 +114,7 @@ class RouteMatcher implements RouteMatcherInterface
 			}
 
 			$match = isset($node->handler[$method]);
+			/** @var mixed */
 			$handler = $match ? $node->handler[$method] : null;
 			$methods = array_keys($node->handler);
 
