@@ -11,6 +11,12 @@ interface MatchResultInterface
 	 * @return mixed
 	 */
 	public function getHandler();
+	/**
+	 * @return array<int, string>
+	 */
 	public function getMethods(): array;
+	/**
+	 * @return array<string, string>
+	 */
 	public function getParams(): array;
 }

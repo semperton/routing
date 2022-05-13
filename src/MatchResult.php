@@ -15,13 +15,13 @@ final class MatchResult implements MatchResultInterface
 	/** @var array<int, string> */
 	protected $methods;
 
-	/** @var array<string, scalar> */
+	/** @var array<string, string> */
 	protected $params;
 
 	/**
 	 * @param mixed $handler
 	 * @param array<int, string> $methods
-	 * @param array<string, scalar> $params
+	 * @param array<string, string> $params
 	 */
 	public function __construct(bool $match, $handler = null, array $methods = [], array $params = [])
 	{
@@ -44,11 +44,17 @@ final class MatchResult implements MatchResultInterface
 		return $this->handler;
 	}
 
+	/**
+	 * @return array<int, string>
+	 */
 	public function getMethods(): array
 	{
 		return $this->methods;
 	}
 
+	/**
+	 * @return array<string, string>
+	 */
 	public function getParams(): array
 	{
 		return $this->params;
