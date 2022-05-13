@@ -15,6 +15,7 @@
     },
     "scripts": {
         "test": "phpunit tests",
+        "check": "psalm",
         "bench": "phpbench run benchmark --report=default"
     },
     "require-dev": {
