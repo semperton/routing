@@ -8,7 +8,7 @@ use Closure;
 use InvalidArgumentException;
 use OutOfBoundsException;
 
-class RouteCollection
+class RouteCollection implements RouteCollectionInterface
 {
 	/** @var string */
 	protected $pathPrefix = '';
@@ -19,12 +19,12 @@ class RouteCollection
 	/** @var array<string, string> */
 	protected $namedRoutes = [];
 
-	/** @var Node */
+	/** @var RouteNode */
 	protected $routeTree;
 
-	public function __construct()
+	public function __construct(?RouteNode $routeTree = null)
 	{
-		$this->routeTree = new Node();
+		$this->routeTree = $routeTree ?? new RouteNode();
 	}
 
 	public function __clone()
@@ -32,9 +32,9 @@ class RouteCollection
 		$this->routeTree = clone $this->routeTree;
 	}
 
-	public function getRouteTree(): Node
+	public function getRouteTree(): RouteNode
 	{
-		return clone $this->routeTree;
+		return $this->routeTree;
 	}
 
 	/**
@@ -123,7 +123,7 @@ class RouteCollection
 	 * @param array<int, string> $tokens
 	 * @param array<string, mixed> $handler
 	 */
-	protected function mapTokens(Node $node, array $tokens, array $handler): void
+	protected function mapTokens(RouteNode $node, array $tokens, array $handler): void
 	{
 		foreach ($tokens as $token) {
 
@@ -150,10 +150,10 @@ class RouteCollection
 			$path = &$node->{$key};
 
 			if (!isset($path[$token])) {
-				$path[$token] = new Node();
+				$path[$token] = new RouteNode();
 			}
 
-			/** @var Node */
+			/** @var RouteNode */
 			$node = $path[$token];
 		}
 

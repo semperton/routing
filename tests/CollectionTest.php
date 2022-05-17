@@ -96,7 +96,7 @@ final class CollectionTest extends TestCase
 
 		$collection2->get('/blog', 'blog-route');
 
-		$matcher = new RouteMatcher($collection->getRouteTree());
+		$matcher = new RouteMatcher($collection);
 		$result = $matcher->match('GET', '/blog');
 
 		$this->assertFalse($result->isMatch());

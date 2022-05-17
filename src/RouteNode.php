@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
-final class Node
+final class RouteNode
 {
 	/** @var bool */
 	public $leaf = false;
@@ -12,19 +12,30 @@ final class Node
 	/** @var array<string, mixed> */
 	public $handler = [];
 
-	/** @var array<string, Node> */
+	/** @var array<string, RouteNode> */
 	public $static = [];
 
-	/** @var array<string, Node> */
+	/** @var array<string, RouteNode> */
 	public $placeholder = [];
 
 	/** @var array<string, true> */
 	public $catchall = [];
 
+	public function __clone()
+	{
+		foreach ($this->static as $path => $node) {
+			$this->static[$path] = clone $node;
+		}
+
+		foreach ($this->placeholder as $path => $node) {
+			$this->placeholder[$path] = clone $node;
+		}
+	}
+
 	/**
 	 * @psalm-suppress MixedAssignment
 	 */
-	public static function __set_state(array $props): Node
+	public static function __set_state(array $props): RouteNode
 	{
 		$node = new self();
 		$node->leaf = $props['leaf'];

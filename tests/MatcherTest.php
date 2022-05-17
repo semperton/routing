@@ -14,7 +14,7 @@ final class MatcherTest extends TestCase
 		$routes = new RouteCollection();
 		$routes->get('/', 'index-handler');
 
-		$matcher = new RouteMatcher($routes->getRouteTree());
+		$matcher = new RouteMatcher($routes);
 		$result = $matcher->match('GET', '/');
 
 		$this->assertTrue($result->isMatch());
@@ -27,7 +27,7 @@ final class MatcherTest extends TestCase
 		$routes->post('/category/:category:w/:id:d', 'post-handler');
 		$routes->delete('/category/:category:w/:id:d', 'delete-handler');
 
-		$matcher = new RouteMatcher($routes->getRouteTree());
+		$matcher = new RouteMatcher($routes);
 		$result = $matcher->match('POST', '/category/new/42');
 
 		$this->assertInstanceOf(MatchResult::class, $result);
@@ -48,7 +48,7 @@ final class MatcherTest extends TestCase
 		$routes->get('/validate/:slug:n', 'new-handler');
 		$routes->get('/validate/:slug:w', 'default-handler');
 
-		$matcher = new RouteMatcher($routes->getRouteTree());
+		$matcher = new RouteMatcher($routes);
 		$matcher->setValidator('n', function (string $val) {
 			return strpos($val, 'new-') === 0;
 		});
@@ -66,7 +66,7 @@ final class MatcherTest extends TestCase
 		$routes = new RouteCollection();
 		$routes->get('/foo/:bar:k', 'handler');
 
-		$matcher = new RouteMatcher($routes->getRouteTree());
+		$matcher = new RouteMatcher($routes);
 		$matcher->match('GET', '/foo/bar');
 	}
 
@@ -75,7 +75,7 @@ final class MatcherTest extends TestCase
 		$routes = new RouteCollection();
 		$routes->get('/slash', 'slash-handler');
 
-		$matcher = new RouteMatcher($routes->getRouteTree());
+		$matcher = new RouteMatcher($routes);
 		$result1 = $matcher->match('GET', '/slash');
 		$result2 = $matcher->match('GET', '/slash/');
 
@@ -89,7 +89,7 @@ final class MatcherTest extends TestCase
 		$routes->get('/product/:id:d', 'get-handler');
 		$routes->post('/product/:number:d', 'post-handler');
 
-		$matcher = new RouteMatcher($routes->getRouteTree());
+		$matcher = new RouteMatcher($routes);
 		$result = $matcher->match('DELETE', '/product/42');
 
 		$this->assertFalse($result->isMatch());
@@ -101,7 +101,7 @@ final class MatcherTest extends TestCase
 		$routes = new RouteCollection();
 		$routes->get('/*path', 'get-handler');
 
-		$matcher = new RouteMatcher($routes->getRouteTree());
+		$matcher = new RouteMatcher($routes);
 		$result = $matcher->match('GET', '/admin/users/');
 
 		$this->assertSame(['path' => 'admin/users'], $result->getParams());

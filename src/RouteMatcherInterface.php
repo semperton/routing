@@ -6,5 +6,5 @@ namespace Semperton\Routing;
 
 interface RouteMatcherInterface
 {
-	public function match(string $method, string $path): MatchResultInterface;
+	public function match(string $method, string $path): MatchResult;
 }

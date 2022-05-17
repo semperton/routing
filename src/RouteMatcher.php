@@ -22,12 +22,12 @@ class RouteMatcher implements RouteMatcherInterface
 	/** @var string */
 	protected $basePath = '';
 
-	/** @var Node */
-	protected $routeTree;
+	/** @var RouteCollectionInterface */
+	protected $routeCollection;
 
-	public function __construct(Node $routeTree)
+	public function __construct(RouteCollectionInterface $routeCollection)
 	{
-		$this->routeTree = $routeTree;
+		$this->routeCollection = $routeCollection;
 		$this->validators['w'] = [$this, 'validateWord'];
 	}
 
@@ -43,22 +43,23 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this;
 	}
 
-	public function match(string $method, string $path): MatchResultInterface
+	public function match(string $method, string $path): MatchResult
 	{
 		if ($this->basePath !== '' && strpos($path, $this->basePath) === 0) {
 			$path = substr($path, strlen($this->basePath));
 		}
 
 		$tokens = explode('/', trim($path, '/'));
+		$routeTree = $this->routeCollection->getRouteTree();
 
-		return $this->resolve($this->routeTree, $tokens, $method, []);
+		return $this->resolve($routeTree, $tokens, $method, []);
 	}
 
 	/**
 	 * @param array<int, string> $tokens
 	 * @param array<string, string> $params
 	 */
-	protected function resolve(Node $node, array $tokens, string $method, array $params): MatchResult
+	protected function resolve(RouteNode $node, array $tokens, string $method, array $params): MatchResult
 	{
 		foreach ($tokens as $i => $token) {
 

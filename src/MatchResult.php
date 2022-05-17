@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
-final class MatchResult implements MatchResultInterface
+final class MatchResult
 {
 	/** @var bool */
 	protected $match;
@@ -44,11 +44,17 @@ final class MatchResult implements MatchResultInterface
 		return $this->handler;
 	}
 
+	/**
+	 * @return array<int, string>
+	 */
 	public function getMethods(): array
 	{
 		return $this->methods;
 	}
 
+	/**
+	 * @return array<string, scalar>
+	 */
 	public function getParams(): array
 	{
 		return $this->params;
