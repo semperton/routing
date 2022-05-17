@@ -6,6 +6,20 @@ namespace Semperton\Routing;
 
 use InvalidArgumentException;
 
+use function strpos;
+use function substr;
+use function strlen;
+use function explode;
+use function trim;
+use function array_slice;
+use function array_merge;
+use function array_unshift;
+use function implode;
+use function array_unique;
+use function array_keys;
+use function str_replace;
+use function ctype_alnum;
+
 class RouteMatcher implements RouteMatcherInterface
 {
 	// https://www.php.net/manual/en/ref.ctype.php

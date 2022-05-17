@@ -8,6 +8,13 @@ use Closure;
 use InvalidArgumentException;
 use OutOfBoundsException;
 
+use function explode;
+use function trim;
+use function substr;
+use function array_slice;
+use function implode;
+use function strtoupper;
+
 class RouteCollection implements RouteCollectionInterface
 {
 	/** @var string */
