@@ -9,7 +9,7 @@ final class MatchResult
 	/** @var bool */
 	protected $match;
 
-	/** @var mixed */
+	/** @var null|mixed */
 	protected $handler;
 
 	/** @var array<int, string> */
@@ -19,7 +19,7 @@ final class MatchResult
 	protected $params;
 
 	/**
-	 * @param mixed $handler
+	 * @param null|mixed $handler
 	 * @param array<int, string> $methods
 	 * @param array<string, string> $params
 	 */
@@ -37,7 +37,7 @@ final class MatchResult
 	}
 
 	/**
-	 * @return mixed
+	 * @return null|mixed
 	 */
 	public function getHandler()
 	{
