@@ -95,15 +95,15 @@ class RouteCollection implements RouteCollectionInterface
 
 	/**
 	 * @param array<int, string> $methods
-	 * @param mixed $target
+	 * @param mixed $handler
 	 */
-	public function map(array $methods, string $path, $target, string $name = ''): self
+	public function map(array $methods, string $path, $handler, string $name = ''): self
 	{
-		$handler = [];
+		$mapping = [];
 		foreach ($methods as $method) {
 			$method = strtoupper($method);
 			/** @psalm-suppress MixedAssignment */
-			$handler[$method] = $target;
+			$mapping[$method] = $handler;
 		}
 
 		$path = $this->pathPrefix . $path;
@@ -114,7 +114,7 @@ class RouteCollection implements RouteCollectionInterface
 		}
 
 		$tokens = explode('/', trim($path, '/'));
-		$this->mapTokens($this->routeTree, $tokens, $handler);
+		$this->mapTokens($this->routeTree, $tokens, $mapping);
 
 		return $this;
 	}
