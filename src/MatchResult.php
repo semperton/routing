@@ -15,13 +15,13 @@ final class MatchResult
 	/** @var array<int, string> */
 	protected $methods;
 
-	/** @var array<string, scalar> */
+	/** @var array<string, string> */
 	protected $params;
 
 	/**
 	 * @param mixed $handler
 	 * @param array<int, string> $methods
-	 * @param array<string, scalar> $params
+	 * @param array<string, string> $params
 	 */
 	public function __construct(bool $match, $handler = null, array $methods = [], array $params = [])
 	{
@@ -53,7 +53,7 @@ final class MatchResult
 	}
 
 	/**
-	 * @return array<string, scalar>
+	 * @return array<string, string>
 	 */
 	public function getParams(): array
 	{

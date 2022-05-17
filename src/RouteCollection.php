@@ -63,7 +63,7 @@ class RouteCollection implements RouteCollectionInterface
 					throw new InvalidArgumentException("No value defined for placeholder < $split[0] >");
 				}
 
-				$token = $params[$split[0]];
+				$token = (string)$params[$split[0]];
 
 				if ($first === '*') {
 					$tokens = array_slice($tokens, 0, $i + 1);
