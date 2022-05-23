@@ -51,6 +51,11 @@ class RouteMatcher implements RouteMatcherInterface
 		return $this;
 	}
 
+	public function getBasePath(): string
+	{
+		return $this->basePath;
+	}
+
 	public function setValidator(string $id, callable $callback): self
 	{
 		$this->validators[$id] = $callback;
