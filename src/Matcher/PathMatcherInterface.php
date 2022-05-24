@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Semperton\Routing;
+namespace Semperton\Routing\Matcher;
 
-interface RouteMatcherInterface
+use Semperton\Routing\MatchResult;
+
+interface PathMatcherInterface
 {
 	public function match(string $method, string $path): MatchResult;
 }

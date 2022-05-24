@@ -6,20 +6,19 @@ namespace Semperton\Routing;
 
 final class RouteNode
 {
-	/** @var bool */
-	public $leaf = false;
+	public bool $leaf = false;
 
 	/** @var array<string, mixed> */
-	public $handler = [];
+	public array $handler = [];
 
 	/** @var array<string, RouteNode> */
-	public $static = [];
+	public array $static = [];
 
 	/** @var array<string, RouteNode> */
-	public $placeholder = [];
+	public array $placeholder = [];
 
 	/** @var array<string, true> */
-	public $catchall = [];
+	public array $catchall = [];
 
 	public function __clone()
 	{

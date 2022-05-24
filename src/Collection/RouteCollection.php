@@ -2,14 +2,16 @@
 
 declare(strict_types=1);
 
-namespace Semperton\Routing;
+namespace Semperton\Routing\Collection;
 
 use Closure;
 use InvalidArgumentException;
 use OutOfBoundsException;
+use Semperton\Routing\RouteData;
+use Semperton\Routing\RouteNode;
+use Semperton\Routing\RoutingTrait;
 
 use function explode;
-use function trim;
 use function substr;
 use function array_slice;
 use function implode;
@@ -17,21 +19,25 @@ use function strtoupper;
 
 class RouteCollection implements RouteCollectionInterface
 {
-	/** @var string */
-	protected $pathPrefix = '';
+	use RoutingTrait;
 
-	/** @var string */
-	protected $namePrefix = '';
+	protected string $pathPrefix = '';
 
-	/** @var array<string, string> */
-	protected $namedRoutes = [];
+	protected string $namePrefix = '';
 
-	/** @var RouteNode */
-	protected $routeTree;
+	/** @var array<string, array<int, string>> */
+	protected array $namedRoutes = [];
 
-	public function __construct(?RouteNode $routeTree = null)
+	protected RouteNode $routeTree;
+
+	public function __construct(?RouteData $routeData = null)
 	{
-		$this->routeTree = $routeTree ?? new RouteNode();
+		if ($routeData) {
+			$this->routeTree = $routeData->getRouteTree();
+			$this->namedRoutes = $routeData->getNamedRoutes();
+		} else {
+			$this->routeTree = new RouteNode();
+		}
 	}
 
 	public function __clone()
@@ -39,9 +45,9 @@ class RouteCollection implements RouteCollectionInterface
 		$this->routeTree = clone $this->routeTree;
 	}
 
-	public function getRouteTree(): RouteNode
+	public function getRouteData(): RouteData
 	{
-		return $this->routeTree;
+		return new RouteData($this->routeTree, $this->namedRoutes);
 	}
 
 	/**
@@ -53,24 +59,25 @@ class RouteCollection implements RouteCollectionInterface
 			throw new OutOfBoundsException("The route with name < $name > does not exist");
 		}
 
-		$path = $this->namedRoutes[$name];
-
-		$leadingSlash = $path[0] === '/';
-		$trailingSlash = $path[-1] === '/';
-
-		$tokens = explode('/', trim($path, '/'));
+		$tokens = $this->namedRoutes[$name];
 
 		foreach ($tokens as $i => &$token) {
 
+			if ($token === '') {
+				continue;
+			}
+
 			$first = $token[0];
+
 			if ($first === ':' || $first === '*') {
 
-				$split = explode(':', substr($token, 1), 2);
-				if (!isset($params[$split[0]])) {
-					throw new InvalidArgumentException("No value defined for placeholder < $split[0] >");
+				$param = explode(':', substr($token, 1), 2)[0];
+
+				if (!isset($params[$param])) {
+					throw new InvalidArgumentException("No value defined for placeholder < $param >");
 				}
 
-				$token = (string)$params[$split[0]];
+				$token = rawurlencode((string)$params[$param]);
 
 				if ($first === '*') {
 					$tokens = array_slice($tokens, 0, $i + 1);
@@ -79,9 +86,7 @@ class RouteCollection implements RouteCollectionInterface
 			}
 		}
 
-		$path = ($leadingSlash ? '/' : '') . implode('/', $tokens) . ($trailingSlash ? '/' : '');
-
-		return $path;
+		return implode('/', $tokens);
 	}
 
 	public function group(string $path, Closure $callback, string $name = ''): self
@@ -115,12 +120,13 @@ class RouteCollection implements RouteCollectionInterface
 
 		$path = $this->pathPrefix . $path;
 
+		$tokens = $this->generateTokens($path);
+
 		if ($name !== '') {
 			$name = $this->namePrefix . $name;
-			$this->namedRoutes[$name] = $path;
+			$this->namedRoutes[$name] = $tokens;
 		}
 
-		$tokens = explode('/', trim($path, '/'));
 		$this->mapTokens($this->routeTree, $tokens, $mapping);
 
 		return $this;
@@ -134,23 +140,22 @@ class RouteCollection implements RouteCollectionInterface
 	{
 		foreach ($tokens as $token) {
 
-			if ($token === '') { // index
-				break;
-			}
-
-			$first = $token[0];
-
-			if ($first === '*') { // catchall
-				$token = substr($token, 1);
-				$node->catchall[$token] = true;
-				break;
-			}
-
 			$key = 'static';
 
-			if ($first === ':') { // placeholder
-				$token = substr($token, 1);
-				$key = 'placeholder';
+			if ($token !== '') {
+
+				$first = $token[0];
+
+				if ($first === '*') { // catchall
+					$token = substr($token, 1);
+					$node->catchall[$token] = true;
+					break;
+				}
+
+				if ($first === ':') { // placeholder
+					$token = substr($token, 1);
+					$key = 'placeholder';
+				}
 			}
 
 			/** @var array */
@@ -206,14 +211,6 @@ class RouteCollection implements RouteCollectionInterface
 	public function patch(string $path, $handler, string $name = ''): self
 	{
 		return $this->map(['PATCH'], $path, $handler, $name);
-	}
-
-	/**
-	 * @param mixed $handler
-	 */
-	public function head(string $path, $handler, string $name = ''): self
-	{
-		return $this->map(['HEAD'], $path, $handler, $name);
 	}
 
 	/**

@@ -8,12 +8,6 @@
 
 ---
 
-## Beforehand
-
-- This library does not provide the full flexibility of a regex based router.
-- You can however register custom validators which do perform regex matching.
-- This library does not distinguish between URLs with or without a trailing slash.
-
 ## Installation
 
 Just use Composer:
@@ -21,7 +15,7 @@ Just use Composer:
 ```
 composer require semperton/routing
 ```
-Routing requires PHP 7.2+
+Routing requires PHP 7.4+
 
 ## Routes
 
@@ -49,7 +43,7 @@ The ```RouteMatcher``` is used to match a request method and path against all de
 ```php
 use Semperton\Routing\RouteMatcher;
 
-$matcher = new RouteMatcher($routes->getRouteTree());
+$matcher = new RouteMatcher($routes);
 
 $result = $matcher->match('GET', '/blog/article/3');
 
@@ -101,7 +95,7 @@ use Semperton\Routing\RouteMatcher;
 $routes = new RouteCollection();
 $routes->get('/media/:filename:file', 'handler');
 
-$matcher = new RouteMatcher($routes->getRouteTree());
+$matcher = new RouteMatcher($routes);
 $matcher->setValidator('file', function (string $value) {
 
 	$parts = explode('.', $value, 2);

@@ -2,15 +2,19 @@
 
 declare(strict_types=1);
 
-namespace Semperton\Routing;
+namespace Semperton\Routing\Matcher;
 
 use InvalidArgumentException;
+use Psr\Http\Message\ServerRequestInterface;
+use Semperton\Routing\Collection\RouteCollectionInterface;
+use Semperton\Routing\MatchResult;
+use Semperton\Routing\RouteNode;
+use Semperton\Routing\RoutingTrait;
 
 use function strpos;
 use function substr;
 use function strlen;
 use function explode;
-use function trim;
 use function array_slice;
 use function array_merge;
 use function array_unshift;
@@ -19,12 +23,14 @@ use function array_unique;
 use function array_keys;
 use function str_replace;
 use function ctype_alnum;
+use function rawurldecode;
 
-class RouteMatcher implements RouteMatcherInterface
+class RouteMatcher implements PathMatcherInterface, RequestMatcherInterface
 {
-	// https://www.php.net/manual/en/ref.ctype.php
+	use RoutingTrait;
+
 	/** @var array<string, callable> */
-	protected $validators = [
+	protected array $validators = [
 		'A' => 'ctype_alnum',
 		'a' => 'ctype_alpha',
 		'd' => 'ctype_digit',
@@ -33,15 +39,13 @@ class RouteMatcher implements RouteMatcherInterface
 		'u' => 'ctype_upper'
 	];
 
-	/** @var string */
-	protected $basePath = '';
+	protected string $basePath = '';
 
-	/** @var RouteCollectionInterface */
-	protected $routeCollection;
+	protected RouteNode $routeTree;
 
 	public function __construct(RouteCollectionInterface $routeCollection)
 	{
-		$this->routeCollection = $routeCollection;
+		$this->routeTree = $routeCollection->getRouteData()->getRouteTree();
 		$this->validators['w'] = [$this, 'validateWord'];
 	}
 
@@ -64,21 +68,35 @@ class RouteMatcher implements RouteMatcherInterface
 
 	public function match(string $method, string $path): MatchResult
 	{
+		if ($method === 'HEAD') { // HEAD is the same as GET
+			$method = 'GET';
+		}
+
 		if ($this->basePath !== '' && strpos($path, $this->basePath) === 0) {
 			$path = substr($path, strlen($this->basePath));
 		}
 
-		$tokens = explode('/', trim($path, '/'));
-		$routeTree = $this->routeCollection->getRouteTree();
+		$tokens = $this->generateTokens($path);
+		$params = [];
 
-		return $this->resolve($routeTree, $tokens, $method, []);
+		return $this->resolve($this->routeTree, $tokens, $method, $params);
+	}
+
+	public function matchRequest(ServerRequestInterface $request): MatchResult
+	{
+		$method = $request->getMethod();
+		$path = $request->getUri()->getPath();
+
+		$path = rawurldecode($path);
+
+		return $this->match($method, $path);
 	}
 
 	/**
 	 * @param array<int, string> $tokens
 	 * @param array<string, string> $params
 	 */
-	protected function resolve(RouteNode $node, array $tokens, string $method, array $params): MatchResult
+	protected function resolve(RouteNode $node, array $tokens, string $method, array &$params): MatchResult
 	{
 		foreach ($tokens as $i => $token) {
 
@@ -101,8 +119,12 @@ class RouteMatcher implements RouteMatcherInterface
 
 					if ($result->isMatch()) {
 						return $result;
-					} else if (!empty($result->getMethods())) {
-						$allowedMethods = array_merge($allowedMethods, $result->getMethods());
+					}
+
+					$methods = $result->getMethods();
+
+					if (!!$methods) {
+						$allowedMethods = array_merge($allowedMethods, $methods);
 					}
 
 					unset($params[$split[0]]);
@@ -121,19 +143,13 @@ class RouteMatcher implements RouteMatcherInterface
 				}
 			}
 
-			if ($token !== '') {
-				/** @psalm-suppress MixedArgumentTypeCoercion */
-				return new MatchResult(false, null, array_unique($allowedMethods)); // token mismatch
-			}
+			return new MatchResult(false, null, array_unique($allowedMethods)); // token mismatch
 		}
 
 		if ($node->leaf) {
 
-			if ($method === 'HEAD' && !isset($node->handler[$method])) { // HEAD fallback
-				$method = 'GET';
-			}
+			$match = isset($node->handler[$method]) || array_key_exists($method, $node->handler);
 
-			$match = isset($node->handler[$method]);
 			/** @var mixed */
 			$handler = $match ? $node->handler[$method] : null;
 			$methods = array_keys($node->handler);

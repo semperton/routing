@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Semperton\Routing\Tests;
 
-use Semperton\Routing\RouteCollection;
+use Semperton\Routing\Collection\RouteCollection;
 
 class DummyCollection extends RouteCollection
 {
-	/** @var array */
-	public $routes = [];
+	public array $routes = [];
 
 	public function map(array $methods, string $path, $target, string $name = ''): self
 	{

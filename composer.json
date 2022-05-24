@@ -15,7 +15,7 @@
     },
     "scripts": {
         "test": "phpunit tests",
-        "check": "psalm",
+        "check": "psalm --no-cache",
         "bench": "phpbench run benchmark --report=default"
     },
     "require-dev": {
@@ -24,6 +24,8 @@
         "phpbench/phpbench": "^1.0"
     },
     "require": {
-        "php": ">= 7.2"
+        "php": ">= 7.4",
+        "ext-ctype": "*",
+        "psr/http-message": "^1.0"
     }
 }

@@ -2,9 +2,8 @@
 
 declare(strict_types=1);
 
-use PHPUnit\Framework\Assert;
-use Semperton\Routing\RouteCollection;
-use Semperton\Routing\RouteMatcher;
+use Semperton\Routing\Collection\RouteCollection;
+use Semperton\Routing\Matcher\RouteMatcher;
 
 final class MatcherBench
 {
@@ -58,15 +57,14 @@ final class MatcherBench
 	}
 
 	/**
-	 * @Warmup(2)
-	 * @Revs(1000)
-	 * @Iterations(5)
+	 * @Warmup(10)
+	 * @Revs(10000)
+	 * @Iterations(10)
+	 * @OutputTimeUnit("seconds")
+	 * @OutputMode("throughput")
 	 */
 	public function benchBasicRouting()
 	{
 		$result = $this->matcher->match('GET', '/admin/category/55');
-
-		Assert::assertTrue($result->isMatch());
-		Assert::assertEquals(38, $result->getHandler());
 	}
 }

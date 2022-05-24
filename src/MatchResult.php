@@ -6,17 +6,16 @@ namespace Semperton\Routing;
 
 final class MatchResult
 {
-	/** @var bool */
-	protected $match;
+	protected bool $match;
 
 	/** @var null|mixed */
 	protected $handler;
 
 	/** @var array<int, string> */
-	protected $methods;
+	protected array $methods;
 
 	/** @var array<string, string> */
-	protected $params;
+	protected array $params;
 
 	/**
 	 * @param null|mixed $handler

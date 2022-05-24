@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 use Semperton\Routing\MatchResult;
-use Semperton\Routing\RouteCollection;
-use Semperton\Routing\RouteMatcher;
+use Semperton\Routing\Collection\RouteCollection;
+use Semperton\Routing\Matcher\RouteMatcher;
 
 final class MatcherTest extends TestCase
 {
@@ -79,8 +79,8 @@ final class MatcherTest extends TestCase
 		$result1 = $matcher->match('GET', '/slash');
 		$result2 = $matcher->match('GET', '/slash/');
 
-		$this->assertEquals($result1->isMatch(), $result2->isMatch());
-		$this->assertEquals($result1->getHandler(), $result2->getHandler());
+		$this->assertNotEquals($result1->isMatch(), $result2->isMatch());
+		$this->assertNotEquals($result1->getHandler(), $result2->getHandler());
 	}
 
 	public function testMethodNotAllowed(): void
@@ -104,6 +104,6 @@ final class MatcherTest extends TestCase
 		$matcher = new RouteMatcher($routes);
 		$result = $matcher->match('GET', '/admin/users/');
 
-		$this->assertSame(['path' => 'admin/users'], $result->getParams());
+		$this->assertSame(['path' => 'admin/users/'], $result->getParams());
 	}
 }

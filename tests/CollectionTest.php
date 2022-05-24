@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
-use Semperton\Routing\RouteCollection;
-use Semperton\Routing\RouteMatcher;
+use Semperton\Routing\Collection\RouteCollection;
+use Semperton\Routing\Matcher\RouteMatcher;
 use Semperton\Routing\Tests\DummyCollection;
 
 final class CollectionTest extends TestCase
@@ -13,15 +13,14 @@ final class CollectionTest extends TestCase
 	{
 		$routes = new DummyCollection();
 
-		$routes->map(['GET', 'post', 'PUT', 'PATCH', 'delete', 'OPTIONS', 'HEAD'], '/all', 'all-handler');
+		$routes->map(['GET', 'post', 'PUT', 'PATCH', 'delete', 'OPTIONS'], '/all', 'all-handler');
 		$routes
 			->get('/get', 'get-handler')
 			->post('/post', 'post-handler')
 			->put('/put', 'put-handler')
 			->patch('/patch', 'patch-handler')
 			->delete('/delete', 'delete-handler')
-			->options('/options', 'options-handler')
-			->head('/head', 'head-handler');
+			->options('/options', 'options-handler');
 
 		$expected = [
 			['GET', '/all', 'all-handler', ''],
@@ -30,15 +29,13 @@ final class CollectionTest extends TestCase
 			['PATCH', '/all', 'all-handler', ''],
 			['DELETE', '/all', 'all-handler', ''],
 			['OPTIONS', '/all', 'all-handler', ''],
-			['HEAD', '/all', 'all-handler', ''],
 
 			['GET', '/get', 'get-handler', ''],
 			['POST', '/post', 'post-handler', ''],
 			['PUT', '/put', 'put-handler', ''],
 			['PATCH', '/patch', 'patch-handler', ''],
 			['DELETE', '/delete', 'delete-handler', ''],
-			['OPTIONS', '/options', 'options-handler', ''],
-			['HEAD', '/head', 'head-handler', ''],
+			['OPTIONS', '/options', 'options-handler', '']
 		];
 
 		$this->assertSame($expected, $routes->routes);
@@ -76,11 +73,11 @@ final class CollectionTest extends TestCase
 		$routes = new DummyCollection();
 
 		$routes->get('/category/:slug', 'category-handler', 'category-route');
-		$routes->post('/blog/', 'blog-handler', 'blog-route');
+		$routes->post('blog/', 'blog-handler', 'blog-route');
 
 		$expected = [
 			['GET', '/category/:slug', 'category-handler', 'category-route'],
-			['POST', '/blog/', 'blog-handler', 'blog-route'],
+			['POST', 'blog/', 'blog-handler', 'blog-route'],
 		];
 
 		$this->assertSame($expected, $routes->routes);
