@@ -1,6 +1,6 @@
 <div align="center">
 <a href="https://github.com/semperton">
-<img width="140" src="https://raw.githubusercontent.com/semperton/misc/main/readme-logo.svg" alt="Semperton">
+<img width="140" src="https://raw.githubusercontent.com/semperton/.github/main/readme-logo.svg" alt="Semperton">
 </a>
 <h1>Semperton Routing</h1>
 <p>A lightweight B-tree based routing library for PHP.<br>Supports custom validators and reverse routing.</p>
