@@ -21,7 +21,7 @@ Routing requires PHP 7.4+
 
 All routes are added to a ```RouteCollection```. There are shorthand functions for every http verb and a general ```map()``` method:
 ```php
-use Semperton\Routing\RouteCollection;
+use Semperton\Routing\Collection\RouteCollection;
 
 $routes = new RouteCollection();
 
@@ -41,7 +41,7 @@ $routes->group('/blog', function (RouteCollection $blog) {
 
 The ```RouteMatcher``` is used to match a request method and path against all defined routes. It uses the route tree from ```RouteCollection``` and returns a ```MatchResult```:
 ```php
-use Semperton\Routing\RouteMatcher;
+use Semperton\Routing\Matcher\RouteMatcher;
 
 $matcher = new RouteMatcher($routes);
 
@@ -89,8 +89,8 @@ There are several builtin validators available:
 
 You can add custom validators to the ```RouteMatcher``` for placeholder validation:
 ```php
-use Semperton\Routing\RouteCollection;
-use Semperton\Routing\RouteMatcher;
+use Semperton\Routing\Collection\RouteCollection;
+use Semperton\Routing\Matcher\RouteMatcher;
 
 $routes = new RouteCollection();
 $routes->get('/media/:filename:file', 'handler');
@@ -117,7 +117,7 @@ $result->getParams(); // ['filename' => 'data.json']
 
 The ```RouteCollection``` can be used to build known routes with the ```reverse()``` method.
 ```php
-use Semperton\Routing\RouteCollection;
+use Semperton\Routing\Collection\RouteCollection;
 
 $routes = new RouteCollection();
 
