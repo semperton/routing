@@ -49,6 +49,9 @@ class RouteMatcher implements PathMatcherInterface, RequestMatcherInterface
 		$this->validators['w'] = [$this, 'validateWord'];
 	}
 
+	/**
+	 * @param string $path MUST be percent-encoded
+	 */
 	public function setBasePath(string $path): self
 	{
 		$this->basePath = $path;
@@ -86,8 +89,6 @@ class RouteMatcher implements PathMatcherInterface, RequestMatcherInterface
 	{
 		$method = $request->getMethod();
 		$path = $request->getUri()->getPath();
-
-		$path = rawurldecode($path);
 
 		return $this->match($method, $path);
 	}
