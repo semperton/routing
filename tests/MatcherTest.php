@@ -34,6 +34,9 @@ final class MatcherTest extends TestCase
 		$this->assertTrue($result->isMatch());
 		$this->assertSame(['category' => 'new', 'id' => '42'], $result->getParams());
 
+		$result = $matcher->match('POST', '/category/new-/42');
+		$this->assertFalse($result->isMatch());
+
 		$result = $matcher->match('GET', '/category/new/42');
 
 		// if we match with the wrong http method,

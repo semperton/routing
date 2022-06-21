@@ -98,4 +98,28 @@ final class CollectionTest extends TestCase
 
 		$this->assertFalse($result->isMatch());
 	}
+
+	public function testRouteData(): void
+	{
+		$collection = new RouteCollection();
+
+		$collection->get('/blog', 'blog-handler', 'blog-route');
+		$collection->post('/update', 'update-handler');
+
+		$filename = __DIR__ . '/routes.php';
+
+		$dump = $collection->dump();
+
+		file_put_contents($filename, '<?php return ' . $dump . ';');
+
+		$data = require $filename;
+
+		$this->assertIsArray($data);
+
+		$newCollection = RouteCollection::fromArray($data);
+
+		$this->assertInstanceOf(RouteCollection::class, $newCollection);
+
+		unlink($filename);
+	}
 }

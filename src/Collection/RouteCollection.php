@@ -7,7 +7,6 @@ namespace Semperton\Routing\Collection;
 use Closure;
 use InvalidArgumentException;
 use OutOfBoundsException;
-use Semperton\Routing\RouteData;
 use Semperton\Routing\RouteNode;
 use Semperton\Routing\RoutingTrait;
 
@@ -26,18 +25,19 @@ class RouteCollection implements RouteCollectionInterface
 	protected string $namePrefix = '';
 
 	/** @var array<string, array<int, string>> */
-	protected array $namedRoutes = [];
+	protected array $namedRoutes;
 
 	protected RouteNode $routeTree;
 
-	public function __construct(?RouteData $routeData = null)
-	{
-		if ($routeData) {
-			$this->routeTree = $routeData->getRouteTree();
-			$this->namedRoutes = $routeData->getNamedRoutes();
-		} else {
-			$this->routeTree = new RouteNode();
-		}
+	/**
+	 * @param array<string, array<int, string>> $namedRoutes
+	 */
+	public function __construct(
+		?RouteNode $routeTree = null,
+		array $namedRoutes = []
+	) {
+		$this->routeTree = $routeTree ?? new RouteNode();
+		$this->namedRoutes = $namedRoutes;
 	}
 
 	public function __clone()
@@ -45,9 +45,9 @@ class RouteCollection implements RouteCollectionInterface
 		$this->routeTree = clone $this->routeTree;
 	}
 
-	public function getRouteData(): RouteData
+	public function getRouteTree(): RouteNode
 	{
-		return new RouteData($this->routeTree, $this->namedRoutes);
+		return clone $this->routeTree;
 	}
 
 	/**
@@ -87,6 +87,22 @@ class RouteCollection implements RouteCollectionInterface
 		}
 
 		return implode('/', $tokens);
+	}
+
+	public function dump(): string
+	{
+		return $this->export([
+			't' => $this->routeTree,
+			'n' => $this->namedRoutes
+		]);
+	}
+
+	/**
+	 * @param array{t: RouteNode, n: array<string, array<int, string>>} $data
+	 */
+	public static function fromArray(array $data): self
+	{
+		return new self($data['t'], $data['n']);
 	}
 
 	public function group(string $path, Closure $callback, string $name = ''): self

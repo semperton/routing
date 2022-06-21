@@ -23,7 +23,6 @@ use function array_unique;
 use function array_keys;
 use function str_replace;
 use function ctype_alnum;
-use function rawurldecode;
 
 class RouteMatcher implements PathMatcherInterface, RequestMatcherInterface
 {
@@ -31,22 +30,22 @@ class RouteMatcher implements PathMatcherInterface, RequestMatcherInterface
 
 	/** @var array<string, callable> */
 	protected array $validators = [
-		'A' => 'ctype_alnum',
-		'a' => 'ctype_alpha',
-		'd' => 'ctype_digit',
-		'x' => 'ctype_xdigit',
-		'l' => 'ctype_lower',
-		'u' => 'ctype_upper'
+		'A' => '\ctype_alnum',
+		'a' => '\ctype_alpha',
+		'd' => '\ctype_digit',
+		'x' => '\ctype_xdigit',
+		'l' => '\ctype_lower',
+		'u' => '\ctype_upper'
 	];
 
 	protected string $basePath = '';
 
-	protected RouteNode $routeTree;
+	protected RouteCollectionInterface $routeCollection;
 
 	public function __construct(RouteCollectionInterface $routeCollection)
 	{
-		$this->routeTree = $routeCollection->getRouteData()->getRouteTree();
 		$this->validators['w'] = [$this, 'validateWord'];
+		$this->routeCollection = $routeCollection;
 	}
 
 	/**
@@ -80,9 +79,10 @@ class RouteMatcher implements PathMatcherInterface, RequestMatcherInterface
 		}
 
 		$tokens = $this->generateTokens($path);
+		$routeTree = $this->routeCollection->getRouteTree();
 		$params = [];
 
-		return $this->resolve($this->routeTree, $tokens, $method, $params);
+		return $this->resolve($routeTree, $tokens, $method, $params);
 	}
 
 	public function matchRequest(ServerRequestInterface $request): MatchResult

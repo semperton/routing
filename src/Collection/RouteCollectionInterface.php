@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Semperton\Routing\Collection;
 
-use Semperton\Routing\RouteData;
+use Semperton\Routing\RouteNode;
 
 interface RouteCollectionInterface
 {
-	public function getRouteData(): RouteData;
+	public function getRouteTree(): RouteNode;
 }
