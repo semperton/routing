@@ -6,6 +6,11 @@ namespace Semperton\Routing;
 
 use Closure;
 
+/**
+ * The tree structure is an implementation detail and may change in any release
+ *
+ * @internal
+ */
 final class RouteNode
 {
 	/** @var array<string, mixed> method => handler, empty for non-leaf nodes */

@@ -38,6 +38,7 @@ $routes->group('/blog', function (RouteCollection $blog) {
 ```
 
 Routes must start with a slash and must not contain empty segments (`//`).
+HTTP methods are case-sensitive and must be uppercase (`GET`, `PURGE`, `VERSION-CONTROL`).
 
 ### Base path
 
@@ -52,7 +53,8 @@ $routes->reverse('user', ['id' => 7]); // '/api/users/7'
 
 ## Matching
 
-The ```RouteMatcher``` is used to match a request method and path against all defined routes. It uses the route tree from ```RouteCollection``` and returns a ```MatchResult```:
+The ```RouteMatcher``` is used to match a request method and path against all defined routes. It uses the route tree from ```RouteCollection``` and returns a ```MatchResult```.
+The route tree (`RouteNode`) is internal and may change in any release, so always build it with `RouteCollection` or a subclass of it:
 ```php
 use Semperton\Routing\Matcher\RouteMatcher;
 
@@ -69,6 +71,23 @@ If the path matches but the method does not, `isMatch()` is `false` and `getMeth
 `HEAD` requests fall back to the `GET` handler, unless a `HEAD` route is defined explicitly.
 
 Pass the raw (percent-encoded) request path. It is split into segments first and each segment is decoded afterwards, so routes are written decoded (`/über`) and params are returned decoded (`a%2Fb` → `a/b`).
+
+### Security
+
+Params are decoded, untrusted user input. A placeholder can contain `/`, `..` or NUL bytes (`a%2F..%2Fb` → `a/../b`), and a wildcard can contain `..` segments (`/files/../../etc`).
+Wildcard values join the decoded segments, so `a%2Fb/c` and `a/b/c` both give `a/b/c`.
+The router does not remove dot segments. Validate params before using them in filesystem paths:
+```php
+$path = $result->getParams()['path'];
+$base = realpath('/var/www/files');
+
+// realpath() throws a ValueError on NUL bytes
+$file = str_contains($path, "\0") ? false : realpath($base . '/' . $path);
+
+if ($file === false || !str_starts_with($file, $base . DIRECTORY_SEPARATOR)) {
+	// 404
+}
+```
 
 ## Placeholders
 
@@ -168,7 +187,7 @@ The matcher keeps no per-request state. Building the tree is cheap, so classic P
 - Wildcard validators check the whole remaining path.
 - Path segments are decoded: define routes decoded, and params and validators receive decoded values.
 - `setValidator()` moved from `RouteMatcher` to `RouteCollection`. Validators must be defined before the routes using them and cannot be replaced.
-- HTTP methods are case-sensitive and no longer uppercased.
-- Routes must start with a slash and must not contain empty segments (`//`).
+- HTTP methods are case-sensitive and no longer uppercased. Methods that are not uppercase (`get`) throw an `InvalidArgumentException`.
+- Routes must start with a slash and must not contain empty segments (`//`). An empty route (`''`) is only allowed inside a group (`group('/api', fn ($api) => $api->get('', ...))`).
 - Invalid route definitions (duplicate routes, names or params, unknown validators, ...) throw an `InvalidArgumentException`.
 - Fluent methods return `static`. Update the signatures in subclasses that override them.

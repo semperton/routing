@@ -293,6 +293,30 @@ final class CollectionTest extends TestCase
 		(new RouteCollection())->map([], '/a', 'handler');
 	}
 
+	public function testInvalidMethods(): void
+	{
+		foreach (['get', 'Get', '', 'GET ', 'G*T'] as $method) {
+			try {
+				(new RouteCollection())->map([$method], '/a', 'handler');
+				$this->fail("method < $method > should be rejected");
+			} catch (InvalidArgumentException) {
+			}
+		}
+
+		$routes = new RouteCollection();
+		$routes->map(['PURGE', 'VERSION-CONTROL'], '/a', 'handler');
+
+		$matcher = new RouteMatcher($routes);
+		$this->assertTrue($matcher->match('VERSION-CONTROL', '/a')->isMatch());
+	}
+
+	public function testEmptyPath(): void
+	{
+		$this->expectException(InvalidArgumentException::class);
+
+		(new RouteCollection())->get('', 'handler');
+	}
+
 	public function testCatchallMustBeLast(): void
 	{
 		$this->expectException(InvalidArgumentException::class);

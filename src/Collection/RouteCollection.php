@@ -18,6 +18,7 @@ use function explode;
 use function implode;
 use function rawurlencode;
 use function str_contains;
+use function str_starts_with;
 use function strlen;
 use function strspn;
 use function substr;
@@ -161,7 +162,7 @@ class RouteCollection implements RouteCollectionInterface
 	}
 
 	/**
-	 * @param list<string> $methods case-sensitive, e.g. 'GET'
+	 * @param list<string> $methods uppercase, e.g. 'GET'
 	 */
 	public function map(array $methods, string $path, mixed $handler, string $name = ''): static
 	{
@@ -171,7 +172,14 @@ class RouteCollection implements RouteCollectionInterface
 			throw new InvalidArgumentException("No methods defined for route < $path >");
 		}
 
-		if ($path !== '' && $path[0] !== '/') {
+		foreach ($methods as $method) {
+			// uppercase letters and '-' cover all registered methods (RFC 9110, IANA)
+			if ($method === '' || strspn($method, self::UPPER . '-') !== strlen($method)) {
+				throw new InvalidArgumentException("Invalid method < $method > for route < $path >, methods must be uppercase");
+			}
+		}
+
+		if (!str_starts_with($path, '/')) {
 			throw new InvalidArgumentException("The route < $path > must start with a slash");
 		}
 
@@ -187,7 +195,7 @@ class RouteCollection implements RouteCollectionInterface
 			}
 		}
 
-		$tokens = $path === '' ? [] : explode('/', $path);
+		$tokens = explode('/', $path);
 
 		$this->mapTokens($tokens, array_fill_keys($methods, $handler));
 
