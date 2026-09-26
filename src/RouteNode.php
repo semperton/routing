@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Semperton\Routing;
 
+use Closure;
+
 final class RouteNode
 {
-	public bool $leaf = false;
-
-	/** @var array<string, mixed> */
+	/** @var array<string, mixed> method => handler, empty for non-leaf nodes */
 	public array $handler = [];
+
+	/** @var array<string, array<string, mixed>> full static path => handler, only filled on the root node */
+	public array $paths = [];
 
 	/** @var array<string, RouteNode> */
 	public array $static = [];
@@ -17,8 +20,14 @@ final class RouteNode
 	/** @var array<string, RouteNode> */
 	public array $placeholder = [];
 
-	/** @var array<string, true> */
+	/** @var array<string, RouteNode> */
 	public array $catchall = [];
+
+	/** parameter name of placeholder / catchall nodes */
+	public string $param = '';
+
+	/** @var null|Closure(string): bool validator of placeholder / catchall nodes */
+	public ?Closure $validator = null;
 
 	public function __clone()
 	{
@@ -29,19 +38,9 @@ final class RouteNode
 		foreach ($this->placeholder as $path => $node) {
 			$this->placeholder[$path] = clone $node;
 		}
-	}
 
-	/**
-	 * @psalm-suppress MixedAssignment
-	 */
-	public static function __set_state(array $props): RouteNode
-	{
-		$node = new self();
-		$node->leaf = $props['leaf'];
-		$node->handler = $props['handler'];
-		$node->static = $props['static'];
-		$node->placeholder = $props['placeholder'];
-		$node->catchall = $props['catchall'];
-		return $node;
+		foreach ($this->catchall as $path => $node) {
+			$this->catchall[$path] = clone $node;
+		}
 	}
 }

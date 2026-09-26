@@ -4,187 +4,159 @@ declare(strict_types=1);
 
 namespace Semperton\Routing\Matcher;
 
-use InvalidArgumentException;
 use Psr\Http\Message\ServerRequestInterface;
 use Semperton\Routing\Collection\RouteCollectionInterface;
 use Semperton\Routing\MatchResult;
 use Semperton\Routing\RouteNode;
-use Semperton\Routing\RoutingTrait;
 
-use function strpos;
-use function substr;
-use function strlen;
-use function explode;
-use function array_slice;
-use function array_merge;
-use function array_unshift;
-use function implode;
-use function array_unique;
+use function array_key_exists;
 use function array_keys;
-use function str_replace;
-use function ctype_alnum;
+use function array_map;
+use function array_slice;
+use function array_unique;
+use function array_values;
+use function count;
+use function explode;
+use function implode;
+use function str_contains;
 
 class RouteMatcher implements PathMatcherInterface, RequestMatcherInterface
 {
-	use RoutingTrait;
-
-	/** @var array<string, callable> */
-	protected array $validators = [
-		'A' => '\ctype_alnum',
-		'a' => '\ctype_alpha',
-		'd' => '\ctype_digit',
-		'x' => '\ctype_xdigit',
-		'l' => '\ctype_lower',
-		'u' => '\ctype_upper'
-	];
-
-	protected string $basePath = '';
-
-	protected RouteCollectionInterface $routeCollection;
-
-	public function __construct(RouteCollectionInterface $routeCollection)
-	{
-		$this->validators['w'] = [$this, 'validateWord'];
-		$this->routeCollection = $routeCollection;
-	}
-
-	/**
-	 * @param string $path MUST be percent-encoded
-	 */
-	public function setBasePath(string $path): self
-	{
-		$this->basePath = $path;
-		return $this;
-	}
-
-	public function getBasePath(): string
-	{
-		return $this->basePath;
-	}
-
-	public function setValidator(string $id, callable $callback): self
-	{
-		$this->validators[$id] = $callback;
-		return $this;
+	public function __construct(
+		protected RouteCollectionInterface $routeCollection
+	) {
 	}
 
 	public function match(string $method, string $path): MatchResult
 	{
-		if ($method === 'HEAD') { // HEAD is the same as GET
-			$method = 'GET';
+		$tree = $this->routeCollection->getRouteTree();
+		$encoded = str_contains($path, '%');
+
+		if (!$encoded && isset($tree->paths[$path])) {
+
+			$result = $this->leafResult($tree->paths[$path], $method, []);
+
+			if ($result->isMatch()) {
+				return $result;
+			}
 		}
 
-		if ($this->basePath !== '' && strpos($path, $this->basePath) === 0) {
-			$path = substr($path, strlen($this->basePath));
+		$tokens = $path === '' ? [] : explode('/', $path);
+
+		if ($encoded) { // split first, so %2F stays part of its segment
+			$tokens = array_map('rawurldecode', $tokens);
 		}
 
-		$tokens = $this->generateTokens($path);
-		$routeTree = $this->routeCollection->getRouteTree();
 		$params = [];
 
-		return $this->resolve($routeTree, $tokens, $method, $params);
+		return $this->resolve($tree, $tokens, 0, count($tokens), $method, $params);
 	}
 
 	public function matchRequest(ServerRequestInterface $request): MatchResult
 	{
-		$method = $request->getMethod();
 		$path = $request->getUri()->getPath();
 
-		return $this->match($method, $path);
+		// an empty path is equivalent to '/' (RFC 3986)
+		return $this->match($request->getMethod(), $path === '' ? '/' : $path);
 	}
 
 	/**
-	 * @param array<int, string> $tokens
+	 * Precedence: static > placeholder > catchall
+	 *
+	 * @param list<string> $tokens
 	 * @param array<string, string> $params
 	 */
-	protected function resolve(RouteNode $node, array $tokens, string $method, array &$params): MatchResult
+	protected function resolve(RouteNode $node, array $tokens, int $i, int $count, string $method, array &$params): MatchResult
 	{
-		foreach ($tokens as $i => $token) {
+		for (; $i < $count; $i++) {
 
-			if (isset($node->static[$token])) { // static path
-				$node = $node->static[$token];
+			$token = $tokens[$i];
+			$static = $node->static[$token] ?? null;
+
+			if ($node->placeholder === [] && $node->catchall === []) { // nothing to backtrack to
+				if ($static === null) {
+					return new MatchResult(false);
+				}
+				$node = $static;
 				continue;
 			}
 
 			$allowedMethods = [];
-			$tokensLeft = array_slice($tokens, $i + 1);
 
-			foreach ($node->placeholder as $pname => $pnode) { // placeholder
+			if ($static !== null) {
 
-				$split = explode(':', $pname, 2);
+				$result = $this->resolve($static, $tokens, $i + 1, $count, $method, $params);
 
-				if (empty($split[1]) || $this->validate($token, $split[1])) {
+				if ($result->isMatch()) {
+					return $result;
+				}
 
-					$params[$split[0]] = $token;
-					$result = $this->resolve($pnode, $tokensLeft, $method, $params);
+				$allowedMethods = $result->getMethods();
+			}
+
+			foreach ($node->placeholder as $pnode) {
+
+				if ($token !== '' && ($pnode->validator === null || ($pnode->validator)($token))) {
+
+					$params[$pnode->param] = $token;
+					$result = $this->resolve($pnode, $tokens, $i + 1, $count, $method, $params);
 
 					if ($result->isMatch()) {
 						return $result;
 					}
 
-					$methods = $result->getMethods();
+					$allowedMethods = [...$allowedMethods, ...$result->getMethods()];
+					unset($params[$pnode->param]);
+				}
+			}
 
-					if (!!$methods) {
-						$allowedMethods = array_merge($allowedMethods, $methods);
+			if ($node->catchall !== []) {
+
+				$rest = implode('/', array_slice($tokens, $i));
+
+				foreach ($node->catchall as $cnode) {
+
+					if ($cnode->validator === null || ($cnode->validator)($rest)) {
+
+						$params[$cnode->param] = $rest;
+						$result = $this->leafResult($cnode->handler, $method, $params);
+
+						if ($result->isMatch()) {
+							return $result;
+						}
+
+						$allowedMethods = [...$allowedMethods, ...$result->getMethods()];
+						unset($params[$cnode->param]);
 					}
-
-					unset($params[$split[0]]);
 				}
 			}
 
-			foreach ($node->catchall as $cname => $_) { // catchall
+			return new MatchResult(false, null, array_values(array_unique($allowedMethods)));
+		}
 
-				$split = explode(':', $cname, 2);
+		return $this->leafResult($node->handler, $method, $params);
+	}
 
-				if (empty($split[1]) || $this->validate($token, $split[1])) {
+	/**
+	 * @param array<string, mixed> $handler
+	 * @param array<string, string> $params
+	 */
+	protected function leafResult(array $handler, string $method, array $params): MatchResult
+	{
+		if ($handler === []) {
+			return new MatchResult(false);
+		}
 
-					array_unshift($tokensLeft, $token);
-					$params[$split[0]] = implode('/', $tokensLeft);
-					break 2;
-				}
+		if (!array_key_exists($method, $handler)) {
+
+			// HEAD falls back to GET, unless a HEAD route is defined
+			if ($method !== 'HEAD' || !array_key_exists('GET', $handler)) {
+				return new MatchResult(false, null, array_keys($handler));
 			}
 
-			return new MatchResult(false, null, array_unique($allowedMethods)); // token mismatch
+			$method = 'GET';
 		}
 
-		if ($node->leaf) {
-
-			$match = isset($node->handler[$method]) || array_key_exists($method, $node->handler);
-
-			/** @var mixed */
-			$handler = $match ? $node->handler[$method] : null;
-			$methods = array_keys($node->handler);
-
-			return new MatchResult($match, $handler, $methods, $params);
-		}
-
-		return new MatchResult(false); // not found
-	}
-
-	public function validate(string $value, string $type): bool
-	{
-		if (!isset($this->validators[$type])) {
-			$validators = implode(', ', array_keys($this->validators));
-			throw new InvalidArgumentException("Validator < $type > not found in ($validators)");
-		}
-
-		$callback = $this->validators[$type];
-
-		return (bool)$callback($value);
-	}
-
-	protected static function validateWord(string $value): bool
-	{
-		if ($value === '') {
-			return false;
-		}
-
-		$value = str_replace('_', '', $value);
-
-		if ($value === '') {
-			return true;
-		}
-
-		return ctype_alnum($value);
+		return new MatchResult(true, $handler[$method], array_keys($handler), $params);
 	}
 }

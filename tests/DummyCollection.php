@@ -10,9 +10,9 @@ class DummyCollection extends RouteCollection
 {
 	public array $routes = [];
 
-	public function map(array $methods, string $path, $target, string $name = ''): self
+	public function map(array $methods, string $path, mixed $handler, string $name = ''): static
 	{
-		parent::map($methods, $path, $target, $name);
+		parent::map($methods, $path, $handler, $name);
 
 		$path = $this->pathPrefix . $path;
 
@@ -21,8 +21,7 @@ class DummyCollection extends RouteCollection
 		}
 
 		foreach ($methods as $method) {
-			$method = strtoupper($method);
-			$this->routes[] = [$method, $path, $target, $name];
+			$this->routes[] = [$method, $path, $handler, $name];
 		}
 
 		return $this;

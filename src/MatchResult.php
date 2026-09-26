@@ -6,28 +6,16 @@ namespace Semperton\Routing;
 
 final class MatchResult
 {
-	protected bool $match;
-
-	/** @var null|mixed */
-	protected $handler;
-
-	/** @var array<int, string> */
-	protected array $methods;
-
-	/** @var array<string, string> */
-	protected array $params;
-
 	/**
-	 * @param null|mixed $handler
-	 * @param array<int, string> $methods
+	 * @param list<string> $methods
 	 * @param array<string, string> $params
 	 */
-	public function __construct(bool $match, $handler = null, array $methods = [], array $params = [])
-	{
-		$this->match = $match;
-		$this->handler = $handler;
-		$this->methods = $methods;
-		$this->params = $params;
+	public function __construct(
+		private readonly bool $match,
+		private readonly mixed $handler = null,
+		private readonly array $methods = [],
+		private readonly array $params = []
+	) {
 	}
 
 	public function isMatch(): bool
@@ -35,16 +23,13 @@ final class MatchResult
 		return $this->match;
 	}
 
-	/**
-	 * @return null|mixed
-	 */
-	public function getHandler()
+	public function getHandler(): mixed
 	{
 		return $this->handler;
 	}
 
 	/**
-	 * @return array<int, string>
+	 * @return list<string>
 	 */
 	public function getMethods(): array
 	{

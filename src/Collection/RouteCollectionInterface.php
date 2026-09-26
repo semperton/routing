@@ -8,5 +8,8 @@ use Semperton\Routing\RouteNode;
 
 interface RouteCollectionInterface
 {
+	/**
+	 * The returned tree MUST be treated as read-only
+	 */
 	public function getRouteTree(): RouteNode;
 }

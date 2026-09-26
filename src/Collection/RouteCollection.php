@@ -8,36 +8,55 @@ use Closure;
 use InvalidArgumentException;
 use OutOfBoundsException;
 use Semperton\Routing\RouteNode;
-use Semperton\Routing\RoutingTrait;
 
+use function array_fill_keys;
+use function array_key_exists;
+use function array_keys;
+use function array_map;
+use function count;
 use function explode;
-use function substr;
-use function array_slice;
 use function implode;
-use function strtoupper;
+use function rawurlencode;
+use function str_contains;
+use function strlen;
+use function strspn;
+use function substr;
 
 class RouteCollection implements RouteCollectionInterface
 {
-	use RoutingTrait;
+	private const DIGIT = '0123456789';
+	private const LOWER = 'abcdefghijklmnopqrstuvwxyz';
+	private const UPPER = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 	protected string $pathPrefix = '';
 
 	protected string $namePrefix = '';
 
-	/** @var array<string, array<int, string>> */
-	protected array $namedRoutes;
+	/** @var array<string, list<string>> */
+	protected array $namedRoutes = [];
+
+	/** @var array<string, Closure(string): bool> */
+	protected array $validators;
 
 	protected RouteNode $routeTree;
 
-	/**
-	 * @param array<string, array<int, string>> $namedRoutes
-	 */
-	public function __construct(
-		?RouteNode $routeTree = null,
-		array $namedRoutes = []
-	) {
-		$this->routeTree = $routeTree ?? new RouteNode();
-		$this->namedRoutes = $namedRoutes;
+	public function __construct()
+	{
+		$this->routeTree = new RouteNode();
+
+		// locale independent, only the given ASCII chars are allowed
+		$ascii = static fn (string $chars): Closure =>
+			static fn (string $value): bool => $value !== '' && strspn($value, $chars) === strlen($value);
+
+		$this->validators = [
+			'A' => $ascii(self::LOWER . self::UPPER . self::DIGIT),
+			'a' => $ascii(self::LOWER . self::UPPER),
+			'd' => $ascii(self::DIGIT),
+			'x' => $ascii(self::DIGIT . 'abcdefABCDEF'),
+			'l' => $ascii(self::LOWER),
+			'u' => $ascii(self::UPPER),
+			'w' => $ascii(self::LOWER . self::UPPER . self::DIGIT . '_')
+		];
 	}
 
 	public function __clone()
@@ -47,65 +66,83 @@ class RouteCollection implements RouteCollectionInterface
 
 	public function getRouteTree(): RouteNode
 	{
-		return clone $this->routeTree;
+		return $this->routeTree;
 	}
 
 	/**
-	 * @param array<string, scalar> $params
+	 * Validators MUST be defined before the routes using them and cannot be replaced
+	 *
+	 * @param callable(string): bool $callback receives the decoded segment
 	 */
-	public function reverse(string $name, array $params): string
+	public function setValidator(string $id, callable $callback): static
 	{
-		if (!isset($this->namedRoutes[$name])) {
-			throw new OutOfBoundsException("The route with name < $name > does not exist");
+		if ($id === '') {
+			throw new InvalidArgumentException('The validator id must not be empty');
 		}
 
-		$tokens = $this->namedRoutes[$name];
+		if (isset($this->validators[$id])) {
+			throw new InvalidArgumentException("The validator < $id > already exists");
+		}
 
-		foreach ($tokens as $i => &$token) {
+		$this->validators[$id] = static fn (string $value): bool => $callback($value);
 
-			if ($token === '') {
+		return $this;
+	}
+
+	public function validate(string $value, string $id): bool
+	{
+		return $this->getValidator($id)($value);
+	}
+
+	/**
+	 * @return Closure(string): bool
+	 */
+	protected function getValidator(string $id): Closure
+	{
+		return $this->validators[$id] ?? throw new InvalidArgumentException(
+			"Validator < $id > not found in (" . implode(', ', array_keys($this->validators)) . ')'
+		);
+	}
+
+	/**
+	 * @param array<string, scalar> $params decoded values, they get percent-encoded
+	 */
+	public function reverse(string $name, array $params = []): string
+	{
+		$tokens = $this->namedRoutes[$name] ?? throw new OutOfBoundsException("The route with name < $name > does not exist");
+
+		$path = [];
+
+		foreach ($tokens as $token) {
+
+			$first = $token[0] ?? '';
+
+			if ($first !== ':' && $first !== '*') { // static
+				$path[] = rawurlencode($token);
 				continue;
 			}
 
-			$first = $token[0];
+			[$param, $validator] = explode(':', substr($token, 1), 2) + [1 => ''];
 
-			if ($first === ':' || $first === '*') {
-
-				$param = explode(':', substr($token, 1), 2)[0];
-
-				if (!isset($params[$param])) {
-					throw new InvalidArgumentException("No value defined for placeholder < $param >");
-				}
-
-				$token = rawurlencode((string)$params[$param]);
-
-				if ($first === '*') {
-					$tokens = array_slice($tokens, 0, $i + 1);
-					break;
-				}
+			if (!isset($params[$param])) {
+				throw new InvalidArgumentException("No value defined for placeholder < $param >");
 			}
+
+			$value = (string)$params[$param];
+
+			if (($first === ':' && $value === '') || ($validator !== '' && !$this->validate($value, $validator))) {
+				throw new InvalidArgumentException("Invalid value < $value > for placeholder < $param >");
+			}
+
+			$path[] = $first === '*'
+				? implode('/', array_map('rawurlencode', explode('/', $value)))
+				: rawurlencode($value);
 		}
 
-		return implode('/', $tokens);
+		return implode('/', $path);
 	}
 
-	public function dump(): string
-	{
-		return $this->export([
-			't' => $this->routeTree,
-			'n' => $this->namedRoutes
-		]);
-	}
-
-	/**
-	 * @param array{t: RouteNode, n: array<string, array<int, string>>} $data
-	 */
-	public static function fromArray(array $data): self
-	{
-		return new self($data['t'], $data['n']);
-	}
-
-	public function group(string $path, Closure $callback, string $name = ''): self
+	public function group(string $path, Closure $callback, string $name = ''): static
 	{
 		$currentPath = $this->pathPrefix;
 		$currentName = $this->namePrefix;
@@ -113,126 +150,141 @@ class RouteCollection implements RouteCollectionInterface
 		$this->pathPrefix .= $path;
 		$this->namePrefix .= $name;
 
-		$callback($this);
-
-		$this->pathPrefix = $currentPath;
-		$this->namePrefix = $currentName;
+		try {
+			$callback($this);
+		} finally {
+			$this->pathPrefix = $currentPath;
+			$this->namePrefix = $currentName;
+		}
 
 		return $this;
 	}
 
 	/**
-	 * @param array<int, string> $methods
-	 * @param mixed $handler
+	 * @param list<string> $methods case-sensitive, e.g. 'GET'
 	 */
-	public function map(array $methods, string $path, $handler, string $name = ''): self
+	public function map(array $methods, string $path, mixed $handler, string $name = ''): static
 	{
-		$mapping = [];
-		foreach ($methods as $method) {
-			$method = strtoupper($method);
-			/** @psalm-suppress MixedAssignment */
-			$mapping[$method] = $handler;
-		}
-
 		$path = $this->pathPrefix . $path;
 
-		$tokens = $this->generateTokens($path);
+		if ($methods === []) {
+			throw new InvalidArgumentException("No methods defined for route < $path >");
+		}
+
+		if ($path !== '' && $path[0] !== '/') {
+			throw new InvalidArgumentException("The route < $path > must start with a slash");
+		}
+
+		if (str_contains($path, '//')) {
+			throw new InvalidArgumentException("The route < $path > must not contain empty segments");
+		}
 
 		if ($name !== '') {
 			$name = $this->namePrefix . $name;
-			$this->namedRoutes[$name] = $tokens;
+
+			if (isset($this->namedRoutes[$name])) {
+				throw new InvalidArgumentException("The route with name < $name > already exists");
+			}
 		}
 
-		$this->mapTokens($this->routeTree, $tokens, $mapping);
+		$tokens = $path === '' ? [] : explode('/', $path);
+
+		$this->mapTokens($tokens, array_fill_keys($methods, $handler));
+
+		if ($name !== '') {
+			$this->namedRoutes[$name] = $tokens;
+		}
 
 		return $this;
 	}
 
 	/**
-	 * @param array<int, string> $tokens
+	 * @param list<string> $tokens
 	 * @param array<string, mixed> $handler
 	 */
-	protected function mapTokens(RouteNode $node, array $tokens, array $handler): void
+	protected function mapTokens(array $tokens, array $handler): void
 	{
-		foreach ($tokens as $token) {
+		$node = $this->routeTree;
+		$static = true;
+		$params = [];
+		$last = count($tokens) - 1;
 
-			$key = 'static';
+		foreach ($tokens as $i => $token) {
 
-			if ($token !== '') {
+			$first = $token[0] ?? '';
 
-				$first = $token[0];
-
-				if ($first === '*') { // catchall
-					$token = substr($token, 1);
-					$node->catchall[$token] = true;
-					break;
-				}
-
-				if ($first === ':') { // placeholder
-					$token = substr($token, 1);
-					$key = 'placeholder';
-				}
+			if ($first !== ':' && $first !== '*') { // static
+				$node = $node->static[$token] ??= new RouteNode();
+				continue;
 			}
 
-			/** @var array */
-			$path = &$node->{$key};
+			$static = false;
+			$key = substr($token, 1);
+			[$param, $validator] = explode(':', $key, 2) + [1 => ''];
 
-			if (!isset($path[$token])) {
-				$path[$token] = new RouteNode();
+			if ($param === '') {
+				throw new InvalidArgumentException("Missing parameter name in < $token >");
 			}
 
-			/** @var RouteNode */
-			$node = $path[$token];
+			if (isset($params[$param])) {
+				throw new InvalidArgumentException("Duplicate parameter name < $param >");
+			}
+			$params[$param] = true;
+
+			$callback = $validator === '' ? null : $this->getValidator($validator);
+
+			if ($first === '*') { // catchall
+				if ($i !== $last) {
+					throw new InvalidArgumentException("Catchall < $token > must be the last path segment");
+				}
+				$node = $node->catchall[$key] ??= new RouteNode();
+			} else { // placeholder
+				$node = $node->placeholder[$key] ??= new RouteNode();
+			}
+
+			$node->param = $param;
+			$node->validator = $callback;
 		}
 
-		$node->leaf = true;
+		foreach ($handler as $method => $_) {
+			if (array_key_exists($method, $node->handler)) {
+				throw new InvalidArgumentException("The route < $method " . implode('/', $tokens) . ' > already exists');
+			}
+		}
+
 		$node->handler = $handler + $node->handler;
+
+		if ($static) { // fast lookup for fully static routes
+			$this->routeTree->paths[implode('/', $tokens)] = $node->handler;
+		}
 	}
 
-	/**
-	 * @param mixed $handler
-	 */
-	public function get(string $path, $handler, string $name = ''): self
+	public function get(string $path, mixed $handler, string $name = ''): static
 	{
 		return $this->map(['GET'], $path, $handler, $name);
 	}
 
-	/**
-	 * @param mixed $handler
-	 */
-	public function post(string $path, $handler, string $name = ''): self
+	public function post(string $path, mixed $handler, string $name = ''): static
 	{
 		return $this->map(['POST'], $path, $handler, $name);
 	}
 
-	/**
-	 * @param mixed $handler
-	 */
-	public function put(string $path, $handler, string $name = ''): self
+	public function put(string $path, mixed $handler, string $name = ''): static
 	{
 		return $this->map(['PUT'], $path, $handler, $name);
 	}
 
-	/**
-	 * @param mixed $handler
-	 */
-	public function delete(string $path, $handler, string $name = ''): self
+	public function delete(string $path, mixed $handler, string $name = ''): static
 	{
 		return $this->map(['DELETE'], $path, $handler, $name);
 	}
 
-	/**
-	 * @param mixed $handler
-	 */
-	public function patch(string $path, $handler, string $name = ''): self
+	public function patch(string $path, mixed $handler, string $name = ''): static
 	{
 		return $this->map(['PATCH'], $path, $handler, $name);
 	}
 
-	/**
-	 * @param mixed $handler
-	 */
-	public function options(string $path, $handler, string $name = ''): self
+	public function options(string $path, mixed $handler, string $name = ''): static
 	{
 		return $this->map(['OPTIONS'], $path, $handler, $name);
 	}
