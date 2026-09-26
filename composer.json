@@ -16,16 +16,15 @@
     "scripts": {
         "test": "phpunit tests",
         "check": "psalm --no-cache",
-        "bench": "phpbench run benchmark --report=default"
+        "bench": "phpbench run benchmark --report=aggregate"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9.5",
-        "vimeo/psalm": "^4.7",
-        "phpbench/phpbench": "^1.0"
+        "phpunit/phpunit": "^11.5",
+        "vimeo/psalm": "^6.0",
+        "phpbench/phpbench": "^1.4"
     },
     "require": {
-        "php": ">= 7.4",
-        "ext-ctype": "*",
-        "psr/http-message": "^1.0"
+        "php": "^8.2",
+        "psr/http-message": "^1.1 || ^2.0"
     }
 }
