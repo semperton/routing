@@ -2,12 +2,18 @@
 
 declare(strict_types=1);
 
+use PhpBench\Attributes as Bench;
 use Semperton\Routing\Collection\RouteCollection;
 use Semperton\Routing\Matcher\RouteMatcher;
 
+#[Bench\Warmup(10)]
+#[Bench\Revs(10000)]
+#[Bench\Iterations(10)]
+#[Bench\OutputTimeUnit('seconds')]
+#[Bench\OutputMode('throughput')]
 final class MatcherBench
 {
-	protected $matcher;
+	private RouteMatcher $matcher;
 
 	public function __construct()
 	{
@@ -56,15 +62,28 @@ final class MatcherBench
 		$this->matcher = new RouteMatcher($routes);
 	}
 
-	/**
-	 * @Warmup(10)
-	 * @Revs(10000)
-	 * @Iterations(10)
-	 * @OutputTimeUnit("seconds")
-	 * @OutputMode("throughput")
-	 */
-	public function benchBasicRouting()
+	public function benchStatic(): void
 	{
-		$result = $this->matcher->match('GET', '/admin/category/55');
+		$this->matcher->match('GET', '/shop/cart/checkout');
+	}
+
+	public function benchPlaceholder(): void
+	{
+		$this->matcher->match('GET', '/admin/category/55');
+	}
+
+	public function benchDeepPlaceholder(): void
+	{
+		$this->matcher->match('GET', '/shop/category/42/product/search/shoes');
+	}
+
+	public function benchNotFound(): void
+	{
+		$this->matcher->match('GET', '/admin/unknown/route');
+	}
+
+	public function benchMethodNotAllowed(): void
+	{
+		$this->matcher->match('DELETE', '/admin/category/55');
 	}
 }
